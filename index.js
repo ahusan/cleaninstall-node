@@ -10,7 +10,7 @@ const DEFAULT_CONFIG = {
   verbose: true,
 };
 
-// Function to load custom config from package.json or .nodecleanuprc
+// Function to load custom config from package.json or .cleaninstallnoderc
 function loadConfig(rootDir) {
   let config = { ...DEFAULT_CONFIG };
 
@@ -19,8 +19,8 @@ function loadConfig(rootDir) {
     const packageJsonPath = path.join(rootDir, "package.json");
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-      if (packageJson.nodeCleanup) {
-        config = { ...config, ...packageJson.nodeCleanup };
+      if (packageJson.cleaninstallNode) {
+        config = { ...config, ...packageJson.cleaninstallNode };
       }
     }
   } catch (error) {
@@ -30,15 +30,18 @@ function loadConfig(rootDir) {
     );
   }
 
-  // Try to load from .nodecleanuprc
+  // Try to load from .cleaninstallnoderc
   try {
-    const rcPath = path.join(rootDir, ".nodecleanuprc");
+    const rcPath = path.join(rootDir, ".cleaninstallnoderc");
     if (fs.existsSync(rcPath)) {
       const rcConfig = JSON.parse(fs.readFileSync(rcPath, "utf8"));
       config = { ...config, ...rcConfig };
     }
   } catch (error) {
-    console.warn("Warning: Could not parse .nodecleanuprc:", error.message);
+    console.warn(
+      "Warning: Could not parse .cleaninstallnoderc:",
+      error.message
+    );
   }
 
   return config;

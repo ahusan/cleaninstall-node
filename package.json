@@ -4,7 +4,7 @@
   "description": "A utility to clean up Node.js project files like node_modules, lock files, and build artifacts",
   "main": "index.js",
   "bin": {
-    "node-cleanup": "./bin/cleanup.js"
+    "cleaninstall-node": "./bin/cleanup.js"
   },
   "scripts": {
     "test": "jest",
@@ -24,12 +24,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ahusan/node-cleanup.git"
+    "url": "git+https://github.com/ahusan/cleaninstall-node.git"
   },
   "bugs": {
-    "url": "https://github.com/ahusan/node-cleanup/issues"
+    "url": "https://github.com/ahusan/cleaninstall-node/issues"
   },
-  "homepage": "https://github.com/ahusan/node-cleanup#readme",
+  "homepage": "https://github.com/ahusan/cleaninstall-node#readme",
   "dependencies": {
     "commander": "^11.1.0"
   },

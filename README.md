@@ -1,4 +1,4 @@
-# Node Cleanup
+# CleanInstall Node
 
 A utility to clean up Node.js project files like node_modules, lock files, and build artifacts.
 
@@ -7,13 +7,13 @@ A utility to clean up Node.js project files like node_modules, lock files, and b
 ### Global Installation
 
 ```bash
-npm install -g node-cleanup
+npm install -g cleaninstall-node
 ```
 
 ### Local Installation
 
 ```bash
-npm install --save-dev node-cleanup
+npm install --save-dev cleaninstall-node
 ```
 
 ## Usage
@@ -23,19 +23,19 @@ npm install --save-dev node-cleanup
 After installing globally, you can run:
 
 ```bash
-node-cleanup
+cleaninstall-node
 ```
 
 Or if installed locally:
 
 ```bash
-npx node-cleanup
+npx cleaninstall-node
 ```
 
 #### Options
 
 ```
-Usage: node-cleanup [options]
+Usage: cleaninstall-node [options]
 
 A utility to clean up Node.js project files
 
@@ -51,10 +51,10 @@ Options:
 
 ### Programmatic Usage
 
-You can also use Node Cleanup programmatically in your Node.js scripts:
+You can also use CleanInstall Node programmatically in your Node.js scripts:
 
 ```javascript
-const { cleanup } = require("node-cleanup");
+const { cleanup } = require("cleaninstall-node");
 
 // With default options
 cleanup()
@@ -79,7 +79,7 @@ cleanup({
 
 ## Configuration
 
-You can configure Node Cleanup using one of these methods:
+You can configure CleanInstall Node using one of these methods:
 
 ### 1. Command Line Options
 
@@ -87,13 +87,13 @@ See the options section above.
 
 ### 2. Package.json Configuration
 
-Add a `nodeCleanup` section to your package.json:
+Add a `cleaninstallNode` section to your package.json:
 
 ```json
 {
   "name": "your-project",
   "version": "1.0.0",
-  "nodeCleanup": {
+  "cleaninstallNode": {
     "dirsToRemove": ["node_modules", "dist", "build"],
     "filesToRemove": ["package-lock.json", "yarn.lock"],
     "scanDepth": 2,
@@ -102,9 +102,9 @@ Add a `nodeCleanup` section to your package.json:
 }
 ```
 
-### 3. .nodecleanuprc File
+### 3. .cleaninstallnoderc File
 
-Create a `.nodecleanuprc` file in your project root:
+Create a `.cleaninstallnoderc` file in your project root:
 
 ```json
 {

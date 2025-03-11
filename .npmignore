@@ -8,7 +8,7 @@ coverage/
 
 # Development files
 .gitignore
-.nodecleanuprc
+.cleaninstallnoderc
 
 # Editor files
 .vscode/

@@ -148,7 +148,7 @@ describe("cleanup function", () => {
         "package.json": JSON.stringify({
           name: "test-project",
           version: "1.0.0",
-          nodeCleanup: {
+          cleaninstallNode: {
             dirsToRemove: ["custom-dir"],
             filesToRemove: ["custom-file.txt"],
           },
@@ -176,15 +176,15 @@ describe("cleanup function", () => {
     expect(fs.existsSync("/project/node_modules")).toBe(true);
   });
 
-  test("should load config from .nodecleanuprc", async () => {
-    // Setup mock filesystem with .nodecleanuprc
+  test("should load config from .cleaninstallnoderc", async () => {
+    // Setup mock filesystem with .cleaninstallnoderc
     mockFs({
       "/project": {
         "package.json": JSON.stringify({
           name: "test-project",
           version: "1.0.0",
         }),
-        ".nodecleanuprc": JSON.stringify({
+        ".cleaninstallnoderc": JSON.stringify({
           dirsToRemove: ["rc-dir"],
           filesToRemove: ["rc-file.txt"],
         }),
