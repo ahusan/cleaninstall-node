@@ -130,6 +130,39 @@ Pass options directly to the `cleanup()` function as shown in the Programmatic U
 | `verbose`       | boolean  | `true`                                                 | Whether to print verbose output                                                  |
 | `cleanMonorepo` | boolean  | `true`                                                 | Whether to clean monorepo directories (apps/, packages/)                         |
 
+## Development
+
+### Testing
+
+This project uses Jest for testing. To run the tests:
+
+```bash
+npm test
+```
+
+The tests use mock-fs to simulate file system operations without actually modifying your file system.
+
+### Publishing
+
+To publish this package to npm:
+
+1. Make sure you have an npm account and are logged in:
+
+   ```bash
+   npm login
+   ```
+
+2. Update the version in package.json:
+
+   ```bash
+   npm version patch  # or minor, or major
+   ```
+
+3. Publish the package:
+   ```bash
+   npm publish
+   ```
+
 ## License
 
 MIT
