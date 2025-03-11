@@ -1,5 +1,5 @@
 {
-  "name": "node-cleanup",
+  "name": "cleaninstall-node",
   "version": "1.0.0",
   "description": "A utility to clean up Node.js project files like node_modules, lock files, and build artifacts",
   "main": "index.js",
