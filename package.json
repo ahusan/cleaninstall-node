@@ -4,7 +4,7 @@
   "description": "A utility to clean up Node.js project files like node_modules, lock files, and build artifacts",
   "main": "index.js",
   "bin": {
-    "cleaninstall-node": "./bin/cleanup.js"
+    "cleaninstall-node": "bin/cleanup.js"
   },
   "scripts": {
     "test": "jest",
