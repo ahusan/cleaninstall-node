@@ -31,13 +31,13 @@
   },
   "homepage": "https://github.com/ahusan/cleaninstall-node#readme",
   "dependencies": {
+    "execa": "^9.5.2",
     "commander": "^11.1.0",
-    "glob": "^11.0.1"
+    "glob": "^11.0.1",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "execa": "^9.5.2",
     "jest": "^29.7.0",
-    "js-yaml": "^4.1.0",
     "mock-fs": "^5.2.0"
   },
   "files": [
