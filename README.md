@@ -1,6 +1,16 @@
 # CleanInstall Node
 
-A utility to clean up Node.js project files like node_modules, lock files, and build artifacts.
+A utility to clean up Node.js project files like `node_modules`, lock files, build artifacts, and more, with support for monorepos.
+
+## Features
+
+- Removes common clutter (`node_modules`, build output, etc.)
+- **Workspace Aware:** Automatically detects workspaces defined in `package.json` or `pnpm-workspace.yaml`.
+- **Glob Pattern Support:** Use glob patterns (e.g., `*.log`, `dist-*`) in configuration for flexible matching.
+- **Dry Run Mode:** See what would be deleted without actually removing anything.
+- **Interactive Mode:** Confirm each deletion individually.
+- **Auto-Install:** Automatically run `npm install`, `yarn install`, or `pnpm install` after cleanup.
+- Configurable via CLI, `package.json`, or `.cleaninstallnoderc`.
 
 ## Installation
 
@@ -23,13 +33,13 @@ npm install --save-dev cleaninstall-node
 After installing globally, you can run:
 
 ```bash
-cleaninstall-node
+cleaninstall-node [options]
 ```
 
 Or if installed locally:
 
 ```bash
-npx cleaninstall-node
+npx cleaninstall-node [options]
 ```
 
 #### Options
@@ -44,91 +54,133 @@ Options:
   -d, --dir <directory>   specify the root directory to clean (defaults to current directory)
   -v, --verbose           print verbose output (default: true)
   --no-verbose            disable verbose output
-  --depth <number>        how deep to scan for workspaces
+  --depth <number>        how deep to scan for workspaces (used as fallback if no workspace patterns found)
   --skip-git              skip .git directories (default: true)
+  --dry-run               show what would be deleted without actually deleting (default: false)
+  -i, --interactive       prompt before deleting each item (default: false)
+  --install               automatically run install command after cleanup (default: false)
   -h, --help              display help for command
 ```
 
 ### Programmatic Usage
 
-You can also use CleanInstall Node programmatically in your Node.js scripts:
+_(Note: The programmatic API may not expose all features available via the CLI, such as interactive mode or auto-install.)_
+
+You can use CleanInstall Node programmatically:
 
 ```javascript
-const { cleanup } = require("cleaninstall-node");
+// Assuming index.js exports a main function or similar
+// const { main: cleanup } = require("cleaninstall-node"); // Example import
+const { exec } = require("child_process");
 
-// With default options
-cleanup()
-  .then(() => {
-    console.log("Cleanup completed!");
-  })
-  .catch((err) => {
-    console.error("Error during cleanup:", err);
-  });
+// Example: Running the CLI command programmatically
+exec(
+  "npx cleaninstall-node --dir /path/to/project",
+  (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error during cleanup: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.error(`Cleanup stderr: ${stderr}`);
+    }
+    console.log(`Cleanup stdout: ${stdout}`);
+  }
+);
 
-// With custom options
+// Direct function call (if exposed and suitable)
 cleanup({
   dir: "/path/to/project",
   dirsToRemove: ["node_modules", "dist", "coverage"],
   filesToRemove: ["package-lock.json"],
   verbose: true,
-  scanDepth: 3,
-}).then(() => {
-  console.log("Custom cleanup completed!");
-});
+  // other options...
+})
+  .then(() => {
+    console.log("Custom cleanup completed!");
+  })
+  .catch((err) => {
+    console.error("Error:", err);
+  });
 ```
+
+## Key Features Explained
+
+### Workspace Detection
+
+The tool automatically looks for `workspaces` definitions in your root `package.json` and `packages` definitions in `pnpm-workspace.yaml`. If found, it uses these patterns (via `glob`) to identify workspace directories and cleans them alongside the root directory. The `--depth` option is mainly used as a fallback if no workspace definitions are found, controlling how deep to look for nested `package.json` files.
+
+### Glob Patterns
+
+You can use [glob patterns](https://github.com/isaacs/node-glob#glob-primer) in the `dirsToRemove` and `filesToRemove` configuration arrays. For example:
+
+- `"*.log"`: Removes all files ending in `.log`.
+- `"temp-*"`: Removes all files or directories starting with `temp-`.
+- `".cache"`: Removes a directory named `.cache`. (Dot files/dirs are included by default).
+
+### Dry Run (`--dry-run`)
+
+Simulates the cleanup process. It prints all files and directories that _would_ be deleted according to the configuration and workspace detection, but doesn't actually modify the file system. Useful for verifying your setup.
+
+### Interactive (`-i`, `--interactive`)
+
+Prompts for confirmation (Y/N) before deleting each identified file or directory. This gives you fine-grained control over the cleanup process.
+
+### Auto-Install (`--install`)
+
+After a successful cleanup (and if not in dry-run mode), this option automatically detects your package manager based on the presence of `pnpm-lock.yaml`, `yarn.lock`, or `package-lock.json` (defaulting to `npm`). It then runs the corresponding install command (`pnpm install`, `yarn install`, or `npm install`) in the root directory.
 
 ## Configuration
 
-You can configure CleanInstall Node using one of these methods:
+Configure using command-line options (highest precedence), a `.cleaninstallnoderc` file (JSON format) in the project root, or a `cleaninstallNode` key in your root `package.json`.
 
-### 1. Command Line Options
-
-See the options section above.
-
-### 2. Package.json Configuration
-
-Add a `cleaninstallNode` section to your package.json:
+### Example `package.json` Configuration
 
 ```json
 {
   "name": "your-project",
   "version": "1.0.0",
   "cleaninstallNode": {
-    "dirsToRemove": ["node_modules", "dist", "build"],
-    "filesToRemove": ["package-lock.json", "yarn.lock"],
-    "scanDepth": 2,
-    "skipDirs": [".git", "docs"]
+    "dirsToRemove": [
+      "node_modules",
+      ".next",
+      "dist",
+      "build",
+      "coverage",
+      "*.tmp"
+    ],
+    "filesToRemove": [
+      "package-lock.json",
+      "yarn.lock",
+      "pnpm-lock.yaml",
+      "*.log"
+    ],
+    "skipDirs": [".git", "docs", ".vscode"]
   }
 }
 ```
 
-### 3. .cleaninstallnoderc File
-
-Create a `.cleaninstallnoderc` file in your project root:
+### Example `.cleaninstallnoderc` File
 
 ```json
 {
-  "dirsToRemove": ["node_modules", "dist", "build"],
-  "filesToRemove": ["package-lock.json", "yarn.lock"],
-  "scanDepth": 2,
-  "skipDirs": [".git", "docs"]
+  "dirsToRemove": ["node_modules", "dist", "build", ".cache"],
+  "filesToRemove": ["*-lock.json", "yarn.lock", "pnpm-lock.yaml"],
+  "skipDirs": [".git", "artifacts"]
 }
 ```
 
-### 4. Programmatic Options
+### Configuration Options
 
-Pass options directly to the `cleanup()` function as shown in the Programmatic Usage section.
+| Option          | Type     | Default                                                | Description                                                                                                    |
+| --------------- | -------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `dirsToRemove`  | string[] | `["node_modules", ".next", ".turbo", "dist", "build"]` | Directories to remove (supports glob patterns). Matched relative to each directory being cleaned.              |
+| `filesToRemove` | string[] | `["pnpm-lock.yaml", "yarn.lock", "package-lock.json"]` | Files to remove (supports glob patterns). Matched relative to each directory being cleaned.                    |
+| `scanDepth`     | number   | `2`                                                    | Fallback scan depth if no workspaces detected (1 = root only, 2 = root + immediate children with package.json) |
+| `skipDirs`      | string[] | `[".git"]`                                             | Base names of directories to completely ignore during scanning and glob matching.                              |
+| `verbose`       | boolean  | `true`                                                 | Whether to print verbose output.                                                                               |
 
-## Configuration Options
-
-| Option          | Type     | Default                                                | Description                                                                      |
-| --------------- | -------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
-| `dirsToRemove`  | string[] | `["node_modules", ".next", ".turbo", "dist", "build"]` | Directories to remove                                                            |
-| `filesToRemove` | string[] | `["pnpm-lock.yaml", "yarn.lock", "package-lock.json"]` | Files to remove                                                                  |
-| `scanDepth`     | number   | `2`                                                    | How deep to scan for workspaces (1 = only root, 2 = one level of subdirectories) |
-| `skipDirs`      | string[] | `[".git"]`                                             | Directories to skip                                                              |
-| `verbose`       | boolean  | `true`                                                 | Whether to print verbose output                                                  |
-| `cleanMonorepo` | boolean  | `true`                                                 | Whether to clean monorepo directories (apps/, packages/)                         |
+_(Note: `workspacePatterns` are automatically detected and not typically set manually in config)_
 
 ## Development
 
@@ -140,7 +192,7 @@ This project uses Jest for testing. To run the tests:
 npm test
 ```
 
-The tests use mock-fs to simulate file system operations without actually modifying your file system.
+The tests should ideally use mocking libraries (like `mock-fs`, or Jest's mocking capabilities for `fs`, `glob`, `execa`, `readline`) to simulate file system operations and external processes without side effects.
 
 ### Publishing
 
