@@ -7,7 +7,6 @@ const pkg = require("../package.json");
 const { globSync } = require("glob");
 const yaml = require("js-yaml");
 const readline = require("readline/promises");
-const { execa } = require("execa");
 
 // Default configuration
 const DEFAULT_CONFIG = {
@@ -187,8 +186,8 @@ async function deleteItem(itemPath, config, rl) {
   }
 }
 
-// Function to find and clean items in a directory (now accepts rl instance)
-async function cleanDirectory(dir, config, rl, currentDepth = 1) {
+// Function to find and clean items in a directory (now accepts rl instance and execa)
+async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
   if (config.verbose) console.log(`\nScanning directory: ${dir}`);
 
   // Remove specified directories using glob patterns
@@ -291,7 +290,7 @@ async function cleanDirectory(dir, config, rl, currentDepth = 1) {
             if (hasPackageJson) {
               if (config.verbose)
                 console.log(`Recursing into potential package: ${subDir}`);
-              await cleanDirectory(subDir, config, rl, currentDepth + 1); // Pass rl
+              await cleanDirectory(subDir, config, rl, execa, currentDepth + 1); // Pass rl and execa
             } else {
               if (config.verbose)
                 console.log(`Skipping non-package subdir: ${subDir}`);
@@ -305,31 +304,43 @@ async function cleanDirectory(dir, config, rl, currentDepth = 1) {
   }
 }
 
-// Function to detect package manager and install command
-function detectPackageManager(rootDir) {
-  if (fs.existsSync(path.join(rootDir, "pnpm-lock.yaml"))) {
-    return { command: "pnpm", args: ["install"] };
+// Function to detect package manager (now accepts execa)
+async function detectPackageManager(rootDir, execa) {
+  if (!execa) throw new Error("Execa function not provided.");
+  try {
+    if (fs.existsSync(path.join(rootDir, "pnpm-lock.yaml"))) {
+      return "pnpm";
+    }
+    if (fs.existsSync(path.join(rootDir, "yarn.lock"))) {
+      // Check yarn version
+      try {
+        const { stdout } = await execa("yarn", ["--version"], { cwd: rootDir });
+        const versionMatch = stdout.match(/^(\d+)/);
+        if (versionMatch && parseInt(versionMatch[1], 10) >= 2) {
+          return "yarn-berry"; // Yarn 2+ (Berry)
+        }
+      } catch (e) {
+        // Ignore error if yarn command fails, maybe it's not installed or configured
+        console.warn(
+          "Could not determine Yarn version, assuming Yarn 1.",
+          e.message
+        );
+      }
+      return "yarn-classic"; // Assume Yarn 1.x
+    }
+    if (fs.existsSync(path.join(rootDir, "package-lock.json"))) {
+      return "npm";
+    }
+  } catch (error) {
+    console.warn("Could not detect package manager:", error.message);
   }
-  if (fs.existsSync(path.join(rootDir, "yarn.lock"))) {
-    return { command: "yarn", args: ["install"] }; // yarn v2+ use 'yarn install'
-  }
-  if (fs.existsSync(path.join(rootDir, "package-lock.json"))) {
-    return { command: "npm", args: ["install"] };
-  }
-  // Default to npm if no lock file is found
-  return { command: "npm", args: ["install"] };
+  return "npm"; // Default to npm if detection fails
 }
 
-// Main function (now conditionally creates and closes rl)
-async function main(options) {
-  let rl = null;
-  let closeRl = false;
-
-  console.log("🧹 Starting cleanup process...");
-
-  const rootDir = options.dir || process.cwd();
-  // Load configuration from defaults and files
-  let config = loadConfig(rootDir);
+// Main function (now accepts execa)
+async function main(options, execa) {
+  const rootDir = process.cwd();
+  let config = loadConfig(rootDir); // Load config first
 
   // ---- Apply Programmatic/CLI Options ----
   // Booleans / Numbers
@@ -374,32 +385,28 @@ async function main(options) {
   }
   // -------------------------------------------------------------------------
 
-  // Detect package manager early
-  const pm = detectPackageManager(rootDir);
+  // Determine package manager (pass execa)
+  const packageManager = await detectPackageManager(rootDir, execa);
+  let installCommand =
+    config.installCommand || INSTALL_COMMANDS[packageManager];
 
-  if (config.dryRun) {
-    console.log("\n*** Dry Run Mode Active: No files will be deleted. ***");
-  } else if (config.interactive) {
+  // Use a single readline interface for all prompts
+  let rl = null;
+  if (config.interactive || (config.install && !config.forceInstall)) {
     rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
     });
-    closeRl = true; // Mark that it needs closing
-    console.log(
-      "\n*** Interactive Mode Active: You will be prompted for deletions. ***"
-    );
-  } else if (config.install) {
-    console.log(
-      `\n*** Auto-Install Active: Will run '${pm.command} ${pm.args.join(
-        " "
-      )}' after cleanup. ***`
-    );
   }
 
   let cleanedDirs = [];
   let cleanupError = null;
 
   try {
+    const workspaceRoots = [];
+    // Always include the root directory
+    workspaceRoots.push(rootDir);
+
     // --- Workspace Cleaning Logic ---
     if (config.workspacePatterns.length > 0) {
       if (config.verbose) {
@@ -433,7 +440,7 @@ async function main(options) {
       }
 
       for (const dir of dirsToClean) {
-        await cleanDirectory(dir, config, rl, 1);
+        await cleanDirectory(dir, config, rl, execa, 1);
         cleanedDirs.push(dir);
       }
     } else {
@@ -443,7 +450,7 @@ async function main(options) {
           "\nNo workspace patterns found or defined. Using scanDepth based cleaning."
         );
       }
-      await cleanDirectory(rootDir, config, rl, 1);
+      await cleanDirectory(rootDir, config, rl, execa, 1);
       cleanedDirs.push(rootDir);
     }
 
@@ -459,30 +466,33 @@ async function main(options) {
     cleanupError = error; // Store error to report later
     console.error("\n❌ Cleanup process encountered an error:", error);
   } finally {
-    // Close readline ONLY if it was created
-    if (rl && closeRl) {
-      rl.close();
+    if (rl) {
+      rl.close(); // Ensure readline is closed
     }
   }
 
   // --- Auto-Install Logic ---
   // Run install only if cleanup completed without errors, not in dry-run, and --install flag is set
   if (!cleanupError && !config.dryRun && config.install) {
-    console.log(`\n📦 Running '${pm.command} ${pm.args.join(" ")}'...`);
-    try {
-      // Run the install command, inherit stdio to show progress
-      await execa(pm.command, pm.args, {
-        cwd: rootDir,
-        stdio: "inherit", // Show output directly in the terminal
-      });
-      console.log("\n✅ Installation completed successfully!");
-    } catch (installError) {
-      console.error(
-        `\n❌ Installation failed: ${pm.command} ${pm.args.join(" ")}`,
-        installError.shortMessage || installError // Show concise error
-      );
-      // Optionally exit with error code if install fails?
-      // process.exit(1);
+    console.log(`\n📦 Running '${installCommand}'...`);
+    if (!config.dryRun) {
+      try {
+        // Pass execa here
+        await execa(
+          installCommand.split(" ")[0],
+          installCommand.split(" ").slice(1),
+          {
+            stdio: "inherit", // Show output in real-time
+            cwd: rootDir, // Run install in the root directory
+          }
+        );
+        console.log("\n✅ Installation completed successfully!");
+      } catch (error) {
+        console.error("\n❌ Installation failed:", error);
+        process.exitCode = 1; // Indicate failure
+      }
+    } else {
+      console.log("[Dry Run] Skipping installation.");
     }
   } else if (!config.dryRun && !config.install) {
     // Only show this message if not installing and not dry run
@@ -519,7 +529,9 @@ program
   .option("--install", "automatically run install command after cleanup", false)
   .action(async (options) => {
     try {
-      await main(options);
+      // Dynamically import execa
+      const { execa } = await import("execa");
+      await main(options, execa);
     } catch (error) {
       console.error(
         "\n❌ An unexpected error occurred outside the main cleanup flow:",
