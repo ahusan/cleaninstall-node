@@ -1,6 +1,6 @@
 {
   "name": "cleaninstall-node",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A utility to clean up Node.js project files like node_modules, lock files, and build artifacts",
   "main": "index.js",
   "bin": {
