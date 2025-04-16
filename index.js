@@ -1,4 +1,5 @@
 const path = require("path");
+const { execa } = require("execa");
 // Import the main logic from the CLI script
 const { main } = require("./bin/cleanup.js");
 // Re-export DEFAULT_CONFIG if needed for tests or programmatic users
@@ -50,8 +51,8 @@ async function cleanup(options = {}) {
     // mappedOptions.verbose = true;
   }
 
-  // Call the core main function
-  await main(mappedOptions);
+  // Call the core main function, passing execa
+  await main(mappedOptions, execa);
 }
 
 module.exports = {
