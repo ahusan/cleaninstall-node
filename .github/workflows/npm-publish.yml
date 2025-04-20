@@ -30,6 +30,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+          scope: "@ahusan"
       - run: npm ci
       - run: npm pkg fix
       - name: Check if version changed
@@ -43,7 +44,7 @@ jobs:
           else
             echo "version_changed=false" >> $GITHUB_OUTPUT
           fi
-      - run: npm publish
+      - run: npm publish --access public
         if: steps.check.outputs.version_changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
@@ -61,7 +62,7 @@ jobs:
   publish-gpr:
     needs: build
     runs-on: ubuntu-latest
-    # if: ${{ false }} # Disable this job by default; enable if you want to publish to GitHub Packages
+    if: steps.check.outputs.version_changed == 'true'
     permissions:
       contents: read
       packages: write
@@ -71,6 +72,7 @@ jobs:
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
+          scope: "@ahusan"
       - run: npm ci
       - name: Check if version changed
         id: check
@@ -79,10 +81,11 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           if [ "$PUBLISHED_VERSION" != "$PACKAGE_VERSION" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
           else
             echo "version_changed=false" >> $GITHUB_OUTPUT
           fi
-      - run: npm publish
+      - run: npm publish --access public
         if: steps.check.outputs.version_changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
