@@ -39,6 +39,7 @@ jobs:
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
           if [ "$PUBLISHED_VERSION" != "$PACKAGE_VERSION" ]; then
             echo "version_changed=true" >> $GITHUB_OUTPUT
+            echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
           else
             echo "version_changed=false" >> $GITHUB_OUTPUT
           fi
@@ -46,3 +47,42 @@ jobs:
         if: steps.check.outputs.version_changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+      - name: Create GitHub Release
+        if: steps.check.outputs.version_changed == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.check.outputs.package_version }}
+          release_name: Release v${{ steps.check.outputs.package_version }}
+          draft: false
+          prerelease: false
+
+  publish-gpr:
+    needs: build
+    runs-on: ubuntu-latest
+    # if: ${{ false }} # Disable this job by default; enable if you want to publish to GitHub Packages
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com/
+      - run: npm ci
+      - name: Check if version changed
+        id: check
+        run: |
+          PUBLISHED_VERSION=$(npm view @${{ github.repository_owner }}/cleaninstall-node version 2>/dev/null || echo "0.0.0")
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PUBLISHED_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "version_changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "version_changed=false" >> $GITHUB_OUTPUT
+          fi
+      - run: npm publish
+        if: steps.check.outputs.version_changed == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
