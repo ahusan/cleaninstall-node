@@ -602,9 +602,16 @@ async function main(options, execa) {
     );
   }
 
-  // Exit with error if cleanup failed
+  // Exit with error if cleanup failed (only if not being tested)
   if (cleanupError) {
-    process.exit(1);
+    // Don't call process.exit in test environment to avoid crashing tests
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    } else {
+      // In test mode, just set exit code without exiting
+      process.exitCode = 1;
+      throw cleanupError; // Re-throw to let tests catch it
+    }
   }
 }
 
