@@ -408,8 +408,9 @@ describe("cleanup function", () => {
     await cleanup({ dir: "/project", verbose: false });
 
     // Expect console.error to have been called due to the mocked error
+    // Handle both Unix and Windows path formats
     expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining("Error processing /project/node_modules"),
+      expect.stringMatching(/Error processing [/\\]?.*[/\\]?project[/\\]node_modules/),
       expect.any(Error) // Assertion should now pass
     );
     // Check that the specific mocked error message was part of the logged Error object
