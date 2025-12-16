@@ -43,6 +43,8 @@ jobs:
     needs: build
     if: ${{ needs.build.outputs.version_changed == 'true' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +60,15 @@ jobs:
       - run: npm run build --if-present
       - run: npm test
       - run: npm publish
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.build.outputs.package_version }}
+          name: Release v${{ needs.build.outputs.package_version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
 
   publish-gpr:
     needs: build
