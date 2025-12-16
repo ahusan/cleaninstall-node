@@ -1,23 +1,38 @@
 {
   "name": "cleaninstall-node",
-  "version": "2.1.5",
+  "version": "2.2.0",
   "description": "A utility to clean up Node.js project files like node_modules, lock files, and build artifacts",
   "main": "index.js",
   "bin": {
     "cleaninstall-node": "bin/cleanup.js"
   },
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test": "jest",
     "prepublishOnly": "npm test"
   },
   "keywords": [
     "cleanup",
+    "clean",
     "node",
     "utility",
     "monorepo",
-    "node_modules"
+    "node_modules",
+    "fresh-install",
+    "reinstall",
+    "workspace",
+    "turborepo",
+    "nx",
+    "pnpm",
+    "yarn",
+    "npm",
+    "lockfile",
+    "build-artifacts",
+    "disk-space",
+    "maintenance",
+    "dev-tools",
+    "cli"
   ],
-  "author": "",
+  "author": "ahusan <email@ahusan.dev>",
   "license": "MIT",
   "engines": {
     "node": ">=12.0.0"

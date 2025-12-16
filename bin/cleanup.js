@@ -10,7 +10,22 @@ const readline = require("readline/promises");
 
 // Default configuration
 const DEFAULT_CONFIG = {
-  dirsToRemove: ["node_modules", ".next", ".turbo", "dist", "build"],
+  dirsToRemove: [
+    "node_modules",
+    ".next",        // Next.js
+    ".turbo",       // Turborepo
+    "dist",         // Common build output
+    "build",        // Common build output
+    ".cache",       // Parcel, Gatsby, etc.
+    ".nuxt",        // Nuxt.js 2
+    ".output",      // Nuxt 3 / Nitro
+    "out",          // Next.js static export
+    ".vite",        // Vite cache (vite 5+)
+    ".astro",       // Astro cache
+    ".svelte-kit",  // SvelteKit
+    "coverage",     // Test coverage
+    ".nyc_output",  // NYC coverage
+  ],
   filesToRemove: ["pnpm-lock.yaml", "yarn.lock", "package-lock.json"],
   scanDepth: 2, // How deep to scan for workspaces (1 = only root, 2 = one level of subdirectories)
   skipDirs: [".git"],
@@ -130,17 +145,64 @@ function loadConfig(rootDir) {
   return config;
 }
 
-// Function to delete a directory or file (now accepts rl instance if interactive)
-async function deleteItem(itemPath, config, rl) {
+// Function to calculate directory size recursively
+function getDirectorySize(dirPath) {
+  let totalSize = 0;
+  let fileCount = 0;
+
+  try {
+    const items = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const item of items) {
+      const itemPath = path.join(dirPath, item.name);
+      try {
+        if (item.isDirectory()) {
+          const { size, files } = getDirectorySize(itemPath);
+          totalSize += size;
+          fileCount += files;
+        } else {
+          const stats = fs.statSync(itemPath);
+          totalSize += stats.size;
+          fileCount += 1;
+        }
+      } catch (err) {
+        // Skip inaccessible items
+      }
+    }
+  } catch (err) {
+    // Skip inaccessible directories
+  }
+
+  return { size: totalSize, files: fileCount };
+}
+
+// Function to delete a directory or file (now accepts rl instance if interactive and stats object)
+async function deleteItem(itemPath, config, rl, stats) {
   try {
     const exists = fs.existsSync(itemPath);
 
     if (!exists) {
-      return false;
+      return { deleted: false, size: 0, files: 0 };
     }
 
     // Determine if it's a directory *before* asking/logging
     const isDirectory = fs.lstatSync(itemPath).isDirectory();
+
+    // Calculate size and file count before deletion
+    let itemSize = 0;
+    let itemFiles = 0;
+    if (isDirectory) {
+      const dirStats = getDirectorySize(itemPath);
+      itemSize = dirStats.size;
+      itemFiles = dirStats.files;
+    } else {
+      try {
+        const fileStats = fs.statSync(itemPath);
+        itemSize = fileStats.size;
+        itemFiles = 1;
+      } catch (err) {
+        // Could not stat file
+      }
+    }
 
     if (config.dryRun) {
       console.log(
@@ -148,7 +210,7 @@ async function deleteItem(itemPath, config, rl) {
           isDirectory ? "directory" : "file"
         }: ${itemPath}`
       );
-      return true; // Simulate success
+      return { deleted: true, size: itemSize, files: itemFiles }; // Simulate success with stats
     }
 
     let shouldDelete = true;
@@ -167,7 +229,7 @@ async function deleteItem(itemPath, config, rl) {
         );
         if (!shouldDelete) {
           if (config.verbose) console.log(`Skipping: ${relativePath}`);
-          return false;
+          return { deleted: false, size: 0, files: 0 };
         }
       }
     }
@@ -181,21 +243,23 @@ async function deleteItem(itemPath, config, rl) {
       } else {
         fs.unlinkSync(itemPath);
       }
-      return true; // Deletion successful
+      return { deleted: true, size: itemSize, files: itemFiles }; // Deletion successful
     }
 
     // If we reach here, deletion was skipped (e.g., interactive 'no')
-    return false;
+    return { deleted: false, size: 0, files: 0 };
   } catch (error) {
     // Catch errors from existsSync, lstatSync, rmSync, unlinkSync
     console.error(`Error processing ${itemPath}:`, error);
-    return false;
+    return { deleted: false, size: 0, files: 0 };
   }
 }
 
-// Function to find and clean items in a directory (now accepts rl instance and execa)
+// Function to find and clean items in a directory (now accepts rl instance and execa and returns stats)
 async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
   if (config.verbose) console.log(`\nScanning directory: ${dir}`);
+
+  let stats = { totalSize: 0, totalFiles: 0, itemsDeleted: 0 };
 
   // Remove specified directories using glob patterns
   try {
@@ -221,7 +285,12 @@ async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
       }
       for (const dirPath of foundDirs) {
         if (dirPath !== dir && !dir.startsWith(dirPath + path.sep)) {
-          await deleteItem(dirPath, config, rl);
+          const result = await deleteItem(dirPath, config, rl, stats);
+          if (result.deleted) {
+            stats.totalSize += result.size;
+            stats.totalFiles += result.files;
+            stats.itemsDeleted += 1;
+          }
         }
       }
     }
@@ -254,7 +323,12 @@ async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
         continue;
       }
       for (const filePath of foundFiles) {
-        await deleteItem(filePath, config, rl);
+        const result = await deleteItem(filePath, config, rl, stats);
+        if (result.deleted) {
+          stats.totalSize += result.size;
+          stats.totalFiles += result.files;
+          stats.itemsDeleted += 1;
+        }
       }
     }
   } catch (error) {
@@ -297,7 +371,11 @@ async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
             if (hasPackageJson) {
               if (config.verbose)
                 console.log(`Recursing into potential package: ${subDir}`);
-              await cleanDirectory(subDir, config, rl, execa, currentDepth + 1); // Pass rl and execa
+              const subStats = await cleanDirectory(subDir, config, rl, execa, currentDepth + 1); // Pass rl and execa
+              // Accumulate stats from subdirectory
+              stats.totalSize += subStats.totalSize;
+              stats.totalFiles += subStats.totalFiles;
+              stats.itemsDeleted += subStats.itemsDeleted;
             } else {
               if (config.verbose)
                 console.log(`Skipping non-package subdir: ${subDir}`);
@@ -309,6 +387,8 @@ async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
   } catch (error) {
     console.error(`Error scanning subdirectories of ${dir}:`, error.message);
   }
+
+  return stats;
 }
 
 // Function to detect package manager (now accepts execa)
@@ -395,6 +475,9 @@ async function main(options, execa) {
 
   let cleanedDirs = [];
   let cleanupError = null;
+  let totalStats = { totalSize: 0, totalFiles: 0, itemsDeleted: 0 };
+
+  const startTime = Date.now();
 
   try {
     const workspaceRoots = [];
@@ -434,7 +517,10 @@ async function main(options, execa) {
       }
 
       for (const dir of dirsToClean) {
-        await cleanDirectory(dir, config, rl, execa, 1);
+        const dirStats = await cleanDirectory(dir, config, rl, execa, 1);
+        totalStats.totalSize += dirStats.totalSize;
+        totalStats.totalFiles += dirStats.totalFiles;
+        totalStats.itemsDeleted += dirStats.itemsDeleted;
         cleanedDirs.push(dir);
       }
     } else {
@@ -444,17 +530,41 @@ async function main(options, execa) {
           "\nNo workspace patterns found or defined. Using scanDepth based cleaning."
         );
       }
-      await cleanDirectory(rootDir, config, rl, execa, 1);
+      const dirStats = await cleanDirectory(rootDir, config, rl, execa, 1);
+      totalStats.totalSize += dirStats.totalSize;
+      totalStats.totalFiles += dirStats.totalFiles;
+      totalStats.itemsDeleted += dirStats.itemsDeleted;
       cleanedDirs.push(rootDir);
     }
+
+    const endTime = Date.now();
+    const duration = ((endTime - startTime) / 1000).toFixed(2);
 
     console.log(
       `\n✅ Cleanup ${config.dryRun ? "(Dry Run) " : ""}${
         config.interactive ? "(Interactive) " : ""
       }completed successfully!`
     );
+
+    // Display summary statistics
+    if (totalStats.itemsDeleted > 0) {
+      console.log("\n📊 Summary:");
+      console.log(`   - Items ${config.dryRun ? "would be " : ""}removed: ${totalStats.itemsDeleted}`);
+      console.log(`   - Files: ${totalStats.totalFiles.toLocaleString()}`);
+
+      // Format size in human-readable format
+      const sizeInMB = (totalStats.totalSize / (1024 * 1024)).toFixed(2);
+      const sizeInGB = (totalStats.totalSize / (1024 * 1024 * 1024)).toFixed(2);
+      const sizeDisplay = totalStats.totalSize > 1024 * 1024 * 1024
+        ? `${sizeInGB} GB`
+        : `${sizeInMB} MB`;
+
+      console.log(`   - Space ${config.dryRun ? "to be " : ""}freed: ${sizeDisplay}`);
+      console.log(`   - Time: ${duration}s`);
+    }
+
     if (cleanedDirs.length > 0 && config.verbose) {
-      console.log("Checked directories:", cleanedDirs);
+      console.log("\nChecked directories:", cleanedDirs);
     }
   } catch (error) {
     cleanupError = error; // Store error to report later
