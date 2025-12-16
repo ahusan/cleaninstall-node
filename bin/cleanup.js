@@ -343,7 +343,7 @@ async function cleanDirectory(dir, config, rl, execa, currentDepth = 1) {
     currentDepth >= config.scanDepth &&
     config.workspacePatterns.length === 0
   ) {
-    return;
+    return stats;
   }
 
   // Scan subdirectories (now passes rl)
