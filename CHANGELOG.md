@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.2] - 2025-12-16
+
+### Fixed
+- Fixed cross-platform path format handling in tests
+- Fixed stats object return in early exit cases
+- Added GitHub Release automation to workflow
+
 ## [2.2.0] - 2025-12-16
 
 ### Added
@@ -143,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip specific directories (e.g., `.git`)
 - Verbose output option
 
+[2.2.2]: https://github.com/ahusan/cleaninstall-node/compare/v2.2.0...v2.2.2
 [2.2.0]: https://github.com/ahusan/cleaninstall-node/compare/v2.1.5...v2.2.0
 [2.1.5]: https://github.com/ahusan/cleaninstall-node/compare/v2.1.4...v2.1.5
 [2.1.4]: https://github.com/ahusan/cleaninstall-node/compare/v2.1.3...v2.1.4
