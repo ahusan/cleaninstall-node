@@ -35,33 +35,11 @@ const DEFAULT_CONFIG = {
   workspacePatterns: [],
 };
 
-// Lockfiles removed when --lockfiles is passed
-const LOCKFILES = [
-  "package-lock.json",
-  "npm-shrinkwrap.json",
-  "yarn.lock",
-  "pnpm-lock.yaml",
-  "bun.lock",
-  "bun.lockb",
-];
-
-// Lockfile -> package manager, checked in order
-const LOCKFILE_MANAGERS = [
-  ["pnpm-lock.yaml", "pnpm"],
-  ["yarn.lock", "yarn"],
-  ["bun.lock", "bun"],
-  ["bun.lockb", "bun"],
-  ["package-lock.json", "npm"],
-  ["npm-shrinkwrap.json", "npm"],
-];
-
-// Maps package manager to its default install command arguments
-const INSTALL_COMMANDS = {
-  npm: ["install"],
-  yarn: ["install"],
-  pnpm: ["install"],
-  bun: ["install"],
-};
+const {
+  LOCKFILES,
+  INSTALL_COMMANDS,
+  detectPackageManager,
+} = require("../lib/project");
 
 // Glob only filters by type with withFileTypes; check the real type ourselves.
 function isRealDirectory(p) {
@@ -324,26 +302,6 @@ function normalizeTargets(targets) {
   return kept.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-// Detect the package manager: `packageManager` field first, then lockfiles.
-function detectPackageManager(rootDir) {
-  try {
-    const pkgPath = path.join(rootDir, "package.json");
-    if (fs.existsSync(pkgPath)) {
-      const field = JSON.parse(fs.readFileSync(pkgPath, "utf8")).packageManager;
-      if (typeof field === "string") {
-        const name = field.split("@")[0];
-        if (INSTALL_COMMANDS[name]) return name;
-      }
-    }
-  } catch {
-    // fall through to lockfile detection
-  }
-  for (const [lockfile, manager] of LOCKFILE_MANAGERS) {
-    if (fs.existsSync(path.join(rootDir, lockfile))) return manager;
-  }
-  return "npm";
-}
-
 // Resolve the install command: config.installCommand (string or array) wins.
 function resolveInstallCommand(config, packageManager) {
   const custom = config.installCommand;
@@ -577,6 +535,7 @@ async function main(options, execa) {
 // Set up command line interface
 program
   .name("cleaninstall-node")
+  .enablePositionalOptions()
   .description("A utility to clean up Node.js project files")
   .version(pkg.version)
   .option("-d, --dir <directory>", "root directory to clean (defaults to current directory)")
@@ -596,6 +555,23 @@ program
       await main(options, execa);
     } catch (error) {
       console.error("\n❌ An unexpected error occurred:", error && error.message ? error.message : error);
+      process.exit(1);
+    }
+  });
+
+program
+  .command("doctor")
+  .description("diagnose why an install is broken and suggest (or apply) the smallest fix")
+  .option("-d, --dir <directory>", "project root (defaults to current directory)")
+  .option("--fix", "apply the suggested fix (rebuild, install, or clean reinstall)")
+  .option("--json", "print the report as JSON")
+  .option("--no-native", "skip loading native modules")
+  .action(async (options) => {
+    try {
+      const { execa } = await import("execa");
+      await require("../lib/doctor").runDoctor(options, execa);
+    } catch (error) {
+      console.error("\n❌ doctor failed:", error && error.message ? error.message : error);
       process.exit(1);
     }
   });

@@ -13,6 +13,7 @@ A powerful, workspace-aware utility to clean up Node.js project files like `node
 - **Workspace Aware:** Automatically detects workspaces defined in `package.json` or `pnpm-workspace.yaml`.
 - **Glob Pattern Support:** Use glob patterns (e.g., `*.log`, `dist-*`) in configuration for flexible matching.
 - **Dry Run Mode:** See what would be deleted without actually removing anything.
+- **`doctor`:** Diagnoses *why* an install is broken (stale lockfile, wrong Node, native ABI mismatch, mixed package managers) and applies the smallest fix.
 - **Safe by default:** Shows what will be removed and asks once before deleting (skip with `-y`). Lockfiles are kept unless you pass `--lockfiles`.
 - **Interactive Mode:** Confirm each deletion individually.
 - **Auto-Install:** Runs `npm`, `yarn`, `pnpm` or `bun` install after cleanup, detected from the `packageManager` field or your lockfile.
@@ -44,6 +45,46 @@ npx cleaninstall-node --dry-run
 # Interactive mode - confirm each deletion
 npx cleaninstall-node -i
 ```
+
+## `doctor`: find out *why* before you delete
+
+Most "nuke `node_modules`" moments have a specific cause. `doctor` finds it and applies the smallest fix that works:
+
+```bash
+npx cleaninstall-node doctor          # diagnose
+npx cleaninstall-node doctor --fix    # apply the smallest fix
+npx cleaninstall-node doctor --json   # machine-readable, exit code 1 on errors
+```
+
+```
+🩺 cleaninstall-node doctor — ~/code/app (npm)
+
+  ✖ node_modules is out of sync with package-lock.json (1 difference)
+      ms: installed 2.1.3, lockfile 2.1.2
+      Usually happens after git pull / switching branches without reinstalling.
+  ✖ 1 native module was built for a different Node version
+      better-sqlite3: built for ABI 115, this Node needs 127
+  ✔ Node v22.11.0 matches .nvmrc (22)
+
+2 errors, 0 warnings.
+
+Smallest fix (run with --fix to apply):
+  → npm install
+  → npm rebuild better-sqlite3
+```
+
+| Check | Detects | Fix |
+| --- | --- | --- |
+| Node version | Running Node vs `.nvmrc`, `.node-version`, `.tool-versions`, `volta.node`, `engines.node` | Manual (`nvm use`). Blocks `--fix` so nothing is rebuilt for the wrong Node |
+| Lockfile sync | `node_modules` doesn't match the lockfile, e.g. after a `git pull` (npm, pnpm, yarn v1) | `install` |
+| Direct dependencies | A dependency is missing or installed outside its `package.json` range (all package managers, workspaces included) | `install` |
+| Native modules | A `.node` addon was built for another Node ABI, or for another OS/CPU (Docker volume, Rosetta) | `rebuild <only those packages>` |
+| Installer | `node_modules` was written by a different package manager than the project uses | remove `node_modules` + install |
+| Lockfiles | More than one package manager's lockfile, a mismatch with `packageManager`, no lockfile at all | Manual |
+| pnpm builds | pnpm 10 skipped a package's build scripts (`ignoredBuilds`) | Manual (`pnpm approve-builds`) |
+| yarn system | yarn v1 installed under a different Node ABI or platform | `install` |
+
+Native addons are loaded in a separate short-lived process, so a crashing addon can't take `doctor` down. Skip that check with `--no-native`.
 
 ## Installation
 

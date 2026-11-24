@@ -1,7 +1,7 @@
 {
   "name": "cleaninstall-node",
   "version": "2.2.3",
-  "description": "A utility to clean up Node.js project files like node_modules, lock files, and build artifacts",
+  "description": "Clean up node_modules, lockfiles and build artifacts, or diagnose why an install is broken with `doctor`",
   "main": "index.js",
   "bin": {
     "cleaninstall-node": "bin/cleanup.js"
@@ -31,7 +31,10 @@
     "disk-space",
     "maintenance",
     "dev-tools",
-    "cli"
+    "cli",
+    "doctor",
+    "native-modules",
+    "rebuild"
   ],
   "author": "ahusan <email@ahusan.dev>",
   "license": "MIT",
@@ -50,7 +53,8 @@
     "commander": "^11.1.0",
     "execa": "^9.5.2",
     "glob": "^11.0.1",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.0",
+    "semver": "^7.8.6"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
@@ -60,6 +64,7 @@
   },
   "files": [
     "bin/",
+    "lib/",
     "index.js",
     "LICENSE",
     "README.md"
