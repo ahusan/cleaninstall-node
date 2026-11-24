@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking
+- **Lockfiles are no longer removed by default.** Use `--lockfiles` (CLI) or `removeLockfiles: true` (config/API) to remove them.
+- **The CLI asks for confirmation** before deleting when run in a terminal. Use `-y`/`--yes` to skip. Non-TTY runs (CI, pipes) and the programmatic API don't prompt.
+- Requires Node.js 18+ (already required in practice by `glob` 11 and `execa` 9).
+
+### Fixed
+- Files matching a directory pattern (e.g. a script named `build`) were deleted, and directories matching a file pattern were attempted with `unlink`. Matches are now type-checked.
+- `installCommand` from config was ignored.
+- `--skip-git` could not be turned off; added `--no-skip-git`.
+- Workspace exclusion patterns (`!packages/foo`) were ignored.
+- Items inside an already-targeted directory were counted twice.
+- Symlinks are no longer followed when measuring size (pnpm over-counting).
+- Removed stray `DEBUG:` console output.
+
+### Added
+- Bun support: `bun.lock` / `bun.lockb` detection and `bun install`.
+- `packageManager` field (Corepack) is used for package manager detection.
+- `cleanup()` now resolves to a result object (`removed`, `skipped`, `failed`, `totalSize`, ...).
+- Real-filesystem behaviour tests replacing assertion-less placeholders.
+
 ## [2.2.2] - 2025-12-16
 
 ### Fixed

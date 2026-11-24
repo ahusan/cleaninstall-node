@@ -13,8 +13,9 @@ A powerful, workspace-aware utility to clean up Node.js project files like `node
 - **Workspace Aware:** Automatically detects workspaces defined in `package.json` or `pnpm-workspace.yaml`.
 - **Glob Pattern Support:** Use glob patterns (e.g., `*.log`, `dist-*`) in configuration for flexible matching.
 - **Dry Run Mode:** See what would be deleted without actually removing anything.
+- **Safe by default:** Shows what will be removed and asks once before deleting (skip with `-y`). Lockfiles are kept unless you pass `--lockfiles`.
 - **Interactive Mode:** Confirm each deletion individually.
-- **Auto-Install:** Automatically run `npm install`, `yarn install`, or `pnpm install` after cleanup.
+- **Auto-Install:** Runs `npm`, `yarn`, `pnpm` or `bun` install after cleanup, detected from the `packageManager` field or your lockfile.
 - Configurable via CLI, `package.json`, or `.cleaninstallnoderc`.
 
 ## Why CleanInstall Node?
@@ -30,6 +31,12 @@ Compared to manual deletion or other tools:
 ```bash
 # Clean and reinstall dependencies in one command
 npx cleaninstall-node --install
+
+# Full reset, including lockfiles (resolves fresh dependency versions!)
+npx cleaninstall-node --lockfiles --install
+
+# Non-interactive (CI / scripts): skip the confirmation prompt
+npx cleaninstall-node -y
 
 # Preview what would be deleted (dry run)
 npx cleaninstall-node --dry-run
@@ -76,17 +83,22 @@ Usage: cleaninstall-node [options]
 A utility to clean up Node.js project files
 
 Options:
-  -V, --version           output the version number
-  -d, --dir <directory>   specify the root directory to clean (defaults to current directory)
-  -v, --verbose           print verbose output (default: true)
-  --no-verbose            disable verbose output
-  --depth <number>        how deep to scan for workspaces (used as fallback if no workspace patterns found)
-  --skip-git              skip .git directories (default: true)
-  --dry-run               show what would be deleted without actually deleting (default: false)
-  -i, --interactive       prompt before deleting each item (default: false)
-  --install               automatically run install command after cleanup (default: false)
-  -h, --help              display help for command
+  -V, --version          output the version number
+  -d, --dir <directory>  root directory to clean (defaults to current directory)
+  -v, --verbose          print verbose output (default: true)
+  --no-verbose           disable verbose output
+  --depth <number>       how deep to scan for packages when no workspaces are defined
+  --skip-git             skip .git directories (default)
+  --no-skip-git          do not skip .git directories
+  --dry-run              show what would be deleted without deleting (default: false)
+  -i, --interactive      prompt before deleting each item (default: false)
+  -y, --yes              don't ask for confirmation before deleting
+  --lockfiles            also remove lockfiles (package-lock.json, yarn.lock, pnpm-lock.yaml, bun.lock)
+  --install              run the package manager's install after cleanup (default: false)
+  -h, --help             display help for command
 ```
+
+When run in a terminal, the tool lists everything it will remove with sizes and asks once before deleting. The prompt is skipped with `-y`, in `--dry-run` / `-i` mode, and when stdin isn't a terminal (CI, pipes).
 
 #### Common Use Cases
 
@@ -94,8 +106,8 @@ Options:
 # Clean a monorepo and reinstall all dependencies
 npx cleaninstall-node --install
 
-# Remove only lock files, keep node_modules
-npx cleaninstall-node --dry-run  # preview first
+# Preview what would be removed
+npx cleaninstall-node --dry-run
 
 # Clean before committing to save disk space
 npx cleaninstall-node
@@ -103,8 +115,8 @@ npx cleaninstall-node
 # Add to package.json scripts for convenience
 {
   "scripts": {
-    "clean": "cleaninstall-node",
-    "fresh": "cleaninstall-node --install",
+    "clean": "cleaninstall-node -y",
+    "fresh": "cleaninstall-node -y --install",
     "clean:preview": "cleaninstall-node --dry-run"
   }
 }
@@ -112,45 +124,23 @@ npx cleaninstall-node
 
 ### Programmatic Usage
 
-_(Note: The programmatic API may not expose all features available via the CLI, such as interactive mode or auto-install.)_
-
-You can use CleanInstall Node programmatically:
-
 ```javascript
-// Assuming index.js exports a main function or similar
-// const { main: cleanup } = require("cleaninstall-node"); // Example import
-const { exec } = require("child_process");
+const { cleanup } = require("cleaninstall-node");
 
-// Example: Running the CLI command programmatically
-exec(
-  "npx cleaninstall-node --dir /path/to/project",
-  (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error during cleanup: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      console.error(`Cleanup stderr: ${stderr}`);
-    }
-    console.log(`Cleanup stdout: ${stdout}`);
-  }
-);
-
-// Direct function call (if exposed and suitable)
-cleanup({
+const result = await cleanup({
   dir: "/path/to/project",
-  dirsToRemove: ["node_modules", "dist", "coverage"],
-  filesToRemove: ["package-lock.json"],
-  verbose: true,
-  // other options...
-})
-  .then(() => {
-    console.log("Custom cleanup completed!");
-  })
-  .catch((err) => {
-    console.error("Error:", err);
-  });
+  dryRun: true,              // report only
+  removeLockfiles: false,    // keep lockfiles (default)
+  dirsToRemove: ["node_modules", "dist"],
+  verbose: false,
+});
+
+console.log(result.removed);      // absolute paths removed (or that would be, in dry run)
+console.log(result.totalSize);    // bytes freed
+console.log(result.packageManager); // "npm" | "yarn" | "pnpm" | "bun"
 ```
+
+`cleanup()` does not show the up-front confirmation prompt (it acts as if `yes: true`). It resolves to `{ dryRun, packageManager, targets, removed, skipped, failed, totalSize, totalFiles, itemsDeleted, installed }`.
 
 ## Key Features Explained
 
@@ -176,7 +166,11 @@ Prompts for confirmation (Y/N) before deleting each identified file or directory
 
 ### Auto-Install (`--install`)
 
-After a successful cleanup (and if not in dry-run mode), this option automatically detects your package manager based on the presence of `pnpm-lock.yaml`, `yarn.lock`, or `package-lock.json` (defaulting to `npm`). It then runs the corresponding install command (`pnpm install`, `yarn install`, or `npm install`) in the root directory.
+After a successful cleanup (and if not in dry-run mode), this runs your package manager's install in the root directory. The package manager is detected before anything is deleted: first from the `packageManager` field in `package.json` (Corepack), then from `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`/`bun.lockb` or `package-lock.json`, defaulting to `npm`. Set `installCommand` in config (e.g. `"npm ci"`) to run something else.
+
+### Lockfiles (`--lockfiles`)
+
+Lockfiles are **kept by default**: deleting them makes the next install resolve new dependency versions, which is rarely what a "clean reinstall" should do. Pass `--lockfiles` (or `removeLockfiles: true` in config/API) to remove `package-lock.json`, `npm-shrinkwrap.json`, `yarn.lock`, `pnpm-lock.yaml`, `bun.lock` and `bun.lockb`.
 
 ## Configuration
 
@@ -223,7 +217,9 @@ Configure using command-line options (highest precedence), a `.cleaninstallnoder
 | Option          | Type     | Default                                                                                                                                                            | Description                                                                                                    |
 | --------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
 | `dirsToRemove`  | string[] | `["node_modules", ".next", ".turbo", "dist", "build", ".cache", ".nuxt", ".output", "out", ".vite", ".astro", ".svelte-kit", "coverage", ".nyc_output"]` | Directories to remove (supports glob patterns). Matched relative to each directory being cleaned.              |
-| `filesToRemove` | string[] | `["pnpm-lock.yaml", "yarn.lock", "package-lock.json"]`                                                                                                             | Files to remove (supports glob patterns). Matched relative to each directory being cleaned.                    |
+| `filesToRemove` | string[] | `[]`                                                                                                                                                               | Files to remove (supports glob patterns). Matched relative to each directory being cleaned.                    |
+| `removeLockfiles` | boolean | `false`                                                                                                                                                         | Also remove all known lockfiles (same as `--lockfiles`).                                                       |
+| `installCommand` | string \| string[] | detected                                                                                                                                                | Command run by `--install`, e.g. `"npm ci"`.                                                                   |
 | `scanDepth`     | number   | `2`                                                                                                                                                                | Fallback scan depth if no workspaces detected (1 = root only, 2 = root + immediate children with package.json) |
 | `skipDirs`      | string[] | `[".git"]`                                                                                                                                                         | Base names of directories to completely ignore during scanning and glob matching.                              |
 | `verbose`       | boolean  | `true`                                                                                                                                                             | Whether to print verbose output.                                                                               |

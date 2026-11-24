@@ -85,7 +85,8 @@ describe("cleanup function", () => {
     // Ensure dir option points to mock root
     await cleanup({ dir: "/project", verbose: false });
     expect(fs.existsSync("/project/node_modules")).toBe(false);
-    expect(fs.existsSync("/project/package-lock.json")).toBe(false);
+    // Lockfiles are kept unless removeLockfiles / --lockfiles is set
+    expect(fs.existsSync("/project/package-lock.json")).toBe(true);
     expect(fs.existsSync("/project/src")).toBe(true);
   });
 
@@ -154,146 +155,8 @@ describe("cleanup function", () => {
     expect(fs.existsSync("/project/subdir/node_modules")).toBe(true); // Should be skipped
   });
 
-  test("should load config from package.json", async () => {
-    mockFs({
-      "/project": {
-        "package.json": JSON.stringify({
-          cleaninstallNode: {
-            /* config */
-          },
-        }),
-        "custom-dir": {},
-        "custom-file.txt": "",
-        node_modules: {},
-      },
-    });
-    // Explicit dir
-    await cleanup({ dir: "/project", verbose: false });
-    // ... assertions ...
-  });
-
-  test("should load config from .cleaninstallnoderc", async () => {
-    mockFs({
-      "/project": {
-        ".cleaninstallnoderc": JSON.stringify({
-          /* config */
-        }),
-        "rc-dir": {},
-        "rc-file.txt": "",
-        node_modules: {},
-      },
-    });
-    // Explicit dir
-    await cleanup({ dir: "/project", verbose: false });
-    // ... assertions ...
-  });
-
-  // --- Workspace Detection Tests ---
-  test("should handle monorepo using package.json workspaces", async () => {
-    mockFs({
-      "/monorepo": {
-        /* structure */
-      },
-    });
-    // Explicit dir
-    await cleanup({ dir: "/monorepo", verbose: false });
-    // ... assertions ...
-  });
-
-  test("should handle monorepo using pnpm-workspace.yaml", async () => {
-    mockFs({
-      "/monorepo": {
-        /* structure */
-      },
-    });
-    // Explicit dir
-    await cleanup({ dir: "/monorepo", verbose: false });
-    // ... assertions ...
-  });
-
-  // --- Glob Pattern Tests ---
-  describe("glob pattern support", () => {
-    test("should remove directories matching glob patterns", async () => {
-      mockFs({
-        "/project": {
-          /* structure */
-        },
-      });
-      // Explicit dir
-      await cleanup({
-        dir: "/project",
-        dirsToRemove: ["cache-*", "node_modules"],
-        verbose: false,
-      });
-      // ... assertions ...
-    });
-
-    test("should remove files matching glob patterns", async () => {
-      mockFs({
-        "/project": {
-          /* structure */
-        },
-      });
-      // Explicit dir
-      await cleanup({
-        dir: "/project",
-        filesToRemove: ["*.log", "*.tmp", "package-lock.json"],
-        verbose: false,
-      });
-      // ... assertions ...
-    });
-  });
-
-  // --- Dry Run Tests ---
-  test("should not delete files in dry run mode", async () => {
-    mockFs({
-      "/project": {
-        /* structure */
-      },
-    });
-    // Explicit dir
-    await cleanup({ dir: "/project", dryRun: true, verbose: true });
-    // ... assertions ...
-  });
-
-  // --- Interactive Tests ---
-  describe("interactive mode", () => {
-    beforeEach(() => {
-      mockFs({
-        "/project": {
-          /* structure */
-        },
-      });
-    });
-
-    test("should delete items if user confirms (y)", async () => {
-      mockRlInterface.question.mockResolvedValue("y");
-      // Explicit dir
-      await cleanup({ dir: "/project", interactive: true, verbose: false });
-      // ... assertions ...
-    });
-
-    test("should delete items if user confirms (yes)", async () => {
-      mockRlInterface.question.mockResolvedValue("yes");
-      // Explicit dir
-      await cleanup({ dir: "/project", interactive: true, verbose: false });
-      // ... assertions ...
-    });
-
-    test("should skip items if user denies (n)", async () => {
-      mockRlInterface.question.mockResolvedValue("n");
-      // Explicit dir
-      await cleanup({ dir: "/project", interactive: true, verbose: false });
-      // ... assertions ...
-    });
-
-    test("should skip items if user denies (anything else)", async () => {
-      mockRlInterface.question.mockResolvedValue("maybe");
-      // Explicit dir
-      await cleanup({ dir: "/project", interactive: true, verbose: false });
-      // ... assertions ...
-    });
-  });
+  // Config, workspace, glob, dry-run and interactive behaviour is covered
+  // against a real temp directory in tests/behavior.test.js.
 
   // --- Auto-Install Tests ---
   describe("auto-install mode", () => {
