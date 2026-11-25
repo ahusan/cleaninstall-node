@@ -4,6 +4,7 @@
 [![Downloads](https://img.shields.io/npm/dm/cleaninstall-node.svg)](https://www.npmjs.com/package/cleaninstall-node)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/ahusan/cleaninstall-node/actions/workflows/ci.yml/badge.svg)](https://github.com/ahusan/cleaninstall-node/actions/workflows/ci.yml)
+[![cleaninstall-node MCP server](https://glama.ai/mcp/servers/ahusan/cleaninstall-node/badges/score.svg)](https://glama.ai/mcp/servers/ahusan/cleaninstall-node)
 
 **Stop deleting `node_modules` blindly.** `cleaninstall-node` finds out *why* an install is broken and applies the smallest fix, warns you right after a `git pull` changes your dependencies, and cleans safely when you really do want a fresh start. Works with npm, pnpm, yarn, bun and Deno, in single projects and monorepos.
 
@@ -157,7 +158,7 @@ With `--json`, the report includes `error.matches` for agents and scripts. An er
 
 When an install breaks, AI coding agents tend to run `rm -rf node_modules package-lock.json && npm install`. That throws away the lockfile, quietly upgrades dependencies, and often doesn't fix the real cause. `cleaninstall-node mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives the agent the diagnosis and the smallest fix instead.
 
-It's listed on the official [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.ahusan/cleaninstall-node`.
+It's listed on the official [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.ahusan/cleaninstall-node` and on [Glama](https://glama.ai/mcp/servers/ahusan/cleaninstall-node).
 
 | Tool | What it does | Changes files |
 | --- | --- | --- |
