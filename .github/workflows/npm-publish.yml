@@ -148,6 +148,18 @@ jobs:
           VERSION="${{ needs.build.outputs.package_version }}"
           jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp && mv server.tmp server.json
           cat server.json
+      # The registry checks the version exists on npm, which can take a minute
+      # to be served after npm publish.
+      - name: Wait for the version on npm
+        run: |
+          VERSION="${{ needs.build.outputs.package_version }}"
+          for i in $(seq 1 30); do
+            if [ "$(npm view "cleaninstall-node@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+              echo "cleaninstall-node@$VERSION is on npm"; exit 0
+            fi
+            sleep 10
+          done
+          echo "cleaninstall-node@$VERSION did not appear on npm within 5 minutes"; exit 1
       - name: Log in to the MCP Registry
         run: ./mcp-publisher login github-oidc
       - name: Publish to the MCP Registry
