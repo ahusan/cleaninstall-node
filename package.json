@@ -1,6 +1,6 @@
 {
   "name": "cleaninstall-node",
-  "version": "3.0.1",
+  "version": "3.1.0",
   "description": "Stop deleting node_modules blindly: diagnose broken installs, apply the smallest fix, get warned after git pull, and clean safely across monorepos.",
   "main": "index.js",
   "bin": {
@@ -37,7 +37,13 @@
     "rebuild",
     "git-hooks",
     "post-checkout",
-    "husky"
+    "husky",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "claude-code",
+    "cursor",
+    "error-explainer"
   ],
   "author": "ahusan <email@ahusan.dev>",
   "license": "MIT",
@@ -60,6 +66,7 @@
     "semver": "^7.8.6"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "@types/js-yaml": "^4.0.9",
     "cross-env": "^10.1.0",
     "jest": "^29.7.0"

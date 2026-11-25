@@ -5,10 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.1.0] - 2026-11-25
 
 ### Added
+- **MCP server: `cleaninstall-node mcp`** for AI coding agents (Claude Code, Cursor, VS Code, Windsurf, Claude Desktop). Tools: `explain_error`, `diagnose`, `apply_fix`, `plan_clean`, `clean`. Mutating tools require the `plan_id` of a preceding read-only call and refuse if the plan changed; tools refuse `/`, the home directory and folders without `package.json`; install/rebuild output is captured and returned; progress notifications are sent. No new runtime dependencies (stdio JSON-RPC implemented directly; tested with the official MCP SDK client and checked against Claude Code).
 - **`doctor --from-error`**: paste or pipe an error message and get what it means for this project, plus the fix (merged into doctor's plan, `--fix` applies it). Recognises native module ABI/platform errors, missing platform binaries (rollup, esbuild, sharp, swc), module-not-found from Node/Vite/webpack/Next.js/TypeScript (answered differently depending on whether the package is declared, installed, phantom, out of range, a local file or a built-in), command not found, `ERR_REQUIRE_ESM`, `ERR_PACKAGE_PATH_NOT_EXPORTED`, out-of-sync lockfiles (npm/pnpm/yarn/bun), `ERESOLVE` peer conflicts, engine errors, Corepack/`workspace:` package-manager mismatches, interrupted installs, `EINTEGRITY`, `EACCES`, disk-full vs. file-watcher `ENOSPC`, and node-gyp build failures. Tested against real npm, pnpm, yarn and Node output.
+
+### Fixed
+- Release workflow: the GitHub Release step (`softprops/action-gh-release`) upgraded to v2 after v1 failed on an empty API response.
+- Website workflow: deploy runs in its own job after the upload, fixing "No artifacts named github-pages were found".
 
 ## [3.0.1] - 2026-11-25
 

@@ -577,6 +577,14 @@ program
     }
   });
 
+program
+  .command("mcp")
+  .description("run as an MCP server over stdio, for AI agents (Claude Code, Cursor, VS Code, ...)")
+  .option("-d, --dir <directory>", "default project directory for tools (defaults to current directory)")
+  .action((options) => {
+    require("../lib/mcp").startStdioServer({ cwd: options.dir ? path.resolve(options.dir) : process.cwd() });
+  });
+
 const hookCmd = program
   .command("hook")
   .description("git hooks that warn (or install) when a checkout, pull or rebase changes dependencies");

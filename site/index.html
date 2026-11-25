@@ -276,6 +276,7 @@
     <span class="ver" id="ver">v3.0.0</span>
     <nav class="links">
       <a href="#doctor" class="hide-sm">Doctor</a>
+      <a href="#agents" class="hide-sm">AI agents</a>
       <a href="#hook" class="hide-sm">Git hook</a>
       <a href="#clean" class="hide-sm">Clean</a>
       <a href="#install">Install</a>
@@ -473,7 +474,39 @@ Smallest fix (run with --fix to apply):
   </div>
 </section>
 
-<section id="hook" class="alt">
+<section id="agents" class="alt">
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">MCP server · for AI agents</div>
+      <h2>Stop your agent from running <code style="font-size:.85em;border:0;background:none;padding:0;white-space:nowrap">rm -rf node_modules</code></h2>
+      <p class="lede">When an install breaks, AI coding agents delete <code>node_modules</code> and the lockfile and hope for the best. <code>cleaninstall-node mcp</code> gives them the diagnosis and the smallest fix instead.</p>
+      <ul class="ticks">
+        <li><b><code>explain_error</code> and <code>diagnose</code></b> return what's wrong and a fix plan as structured data.</li>
+        <li><b><code>apply_fix</code> and <code>clean</code> need the <code>plan_id</code></b> from the read-only call, so the plan is shown before anything changes.</li>
+        <li><b>Hard limits:</b> never runs on <code>/</code> or your home folder, keeps lockfiles, and won't rebuild on the wrong Node.</li>
+        <li><b>Zero extra dependencies.</b> Works with Claude Code, Cursor, VS Code, Windsurf and Claude Desktop.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="install-row">
+        <label class="small" style="display:block;margin-bottom:6px;font-weight:500">Claude Code</label>
+        <div class="copy block" data-copy="claude mcp add cleaninstall -- npx -y cleaninstall-node mcp"><span class="p">$</span><code>claude mcp add cleaninstall -- npx -y cleaninstall-node mcp</code><button type="button">Copy</button></div>
+      </div>
+      <label class="small" style="display:block;margin:16px 0 6px;font-weight:500">Cursor, Windsurf, Claude Desktop (<code>mcpServers</code>)</label>
+      <div class="term" style="box-shadow:none"><pre style="min-height:0;padding:16px 18px">{
+  <span class="c">"mcpServers"</span>: {
+    <span class="c">"cleaninstall"</span>: {
+      "command": "npx",
+      "args": ["-y", "cleaninstall-node", "mcp"]
+    }
+  }
+}</pre></div>
+      <p class="small" style="margin-top:10px">VS Code: same command in <code>.vscode/mcp.json</code> under <code>"servers"</code> with <code>"type": "stdio"</code>. <a href="https://github.com/ahusan/cleaninstall-node#use-it-from-ai-agents-mcp">Full setup</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="hook">
   <div class="wrap split">
     <div>
       <div class="eyebrow">git hook</div>
@@ -503,7 +536,7 @@ Smallest fix (run with --fix to apply):
   </div>
 </section>
 
-<section id="clean">
+<section id="clean" class="alt">
   <div class="wrap split">
     <div>
       <div class="eyebrow">clean</div>
@@ -533,7 +566,7 @@ Smallest fix (run with --fix to apply):
   </div>
 </section>
 
-<section id="install" class="alt">
+<section id="install">
   <div class="wrap">
     <div class="eyebrow">Install</div>
     <h2>Get cleaninstall-node</h2>
