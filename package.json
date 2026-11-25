@@ -1,6 +1,6 @@
 {
   "name": "cleaninstall-node",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Stop deleting node_modules blindly: diagnose broken installs, apply the smallest fix, get warned after git pull, and clean safely across monorepos.",
   "main": "index.js",
   "bin": {
@@ -55,7 +55,7 @@
   "dependencies": {
     "commander": "^11.1.0",
     "execa": "^9.5.2",
-    "glob": "^11.0.1",
+    "glob": "^14.0.6",
     "js-yaml": "^4.1.0",
     "semver": "^7.8.6"
   },
