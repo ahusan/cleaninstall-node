@@ -443,6 +443,33 @@ Delete 4 item(s), 1.90 GB? (y/N) <span class="b">y</span>
     </table>
     </div>
     <p class="small" style="margin-top:16px"><code>--json</code> gives machine-readable output, and the exit code is 1 when there are errors, so it works in CI too.</p>
+
+    <div class="split" style="margin-top:44px">
+      <div>
+        <h3 style="font-size:1.35rem">Start from the error you got</h3>
+        <p class="lede" style="font-size:1rem">Pipe any failing command into <code>--from-error</code>. It explains the error <b>for your project</b>: <code>Cannot find module 'axios'</code> gets a different fix when axios is declared but missing, only installed through another package, the wrong version, or your own file.</p>
+        <ul class="ticks">
+          <li><b>Native modules:</b> ABI mismatch, wrong OS/CPU, missing rollup/esbuild/sharp binaries.</li>
+          <li><b>Installs:</b> lockfile out of sync, <code>ERESOLVE</code>, engine errors, wrong package manager.</li>
+          <li><b>Runtime:</b> module or command not found, <code>ERR_REQUIRE_ESM</code>, unexported subpaths.</li>
+        </ul>
+      </div>
+      <div class="term">
+<pre><span class="c">$ npm run dev 2>&amp;1 | npx cleaninstall-node doctor --from-error</span>
+
+<span class="b">What the error means</span>
+  <span class="e">✖</span> rollup is missing its native binary for this platform
+      <span class="m">rollup ships its compiled code as a separate package per
+      OS/CPU (here: @rollup/rollup-linux-x64-gnu), installed as an
+      optional dependency. That package isn't installed.</span>
+
+<span class="b">In this project</span>
+  <span class="ok">✔</span> 5 other checks passed
+
+Smallest fix (run with --fix to apply):
+  <span class="c">→ remove node_modules and run npm install</span></pre>
+      </div>
+    </div>
   </div>
 </section>
 

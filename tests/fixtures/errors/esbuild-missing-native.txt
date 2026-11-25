@@ -1,0 +1,22 @@
+/home/dev/app/node_modules/esbuild/lib/main.js:2149
+      throw reject;
+      ^
+
+Error: The package "@esbuild/linux-x64" could not be found, and is needed by esbuild.
+
+If you are installing esbuild with npm, make sure that you don't specify the
+"--no-optional" or "--omit=optional" flags. The "optionalDependencies" feature
+of "package.json" is used by esbuild to install the correct binary executable
+for your current platform.
+    at generateBinPath (/home/dev/app/node_modules/esbuild/lib/main.js:1753:15)
+    at esbuildCommandAndArgs (/home/dev/app/node_modules/esbuild/lib/main.js:1823:33)
+    at ensureServiceIsRunning (/home/dev/app/node_modules/esbuild/lib/main.js:1980:25)
+    at startSyncServiceWorker (/home/dev/app/node_modules/esbuild/lib/main.js:2187:19)
+    at Object.<anonymous> (/home/dev/app/node_modules/esbuild/lib/main.js:2228:3)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+
+Node.js v22.23.5

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **`doctor --from-error`**: paste or pipe an error message and get what it means for this project, plus the fix (merged into doctor's plan, `--fix` applies it). Recognises native module ABI/platform errors, missing platform binaries (rollup, esbuild, sharp, swc), module-not-found from Node/Vite/webpack/Next.js/TypeScript (answered differently depending on whether the package is declared, installed, phantom, out of range, a local file or a built-in), command not found, `ERR_REQUIRE_ESM`, `ERR_PACKAGE_PATH_NOT_EXPORTED`, out-of-sync lockfiles (npm/pnpm/yarn/bun), `ERESOLVE` peer conflicts, engine errors, Corepack/`workspace:` package-manager mismatches, interrupted installs, `EINTEGRITY`, `EACCES`, disk-full vs. file-watcher `ENOSPC`, and node-gyp build failures. Tested against real npm, pnpm, yarn and Node output.
+
 ## [3.0.1] - 2026-11-25
 
 ### Fixed

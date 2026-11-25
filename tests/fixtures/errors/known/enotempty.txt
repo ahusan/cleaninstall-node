@@ -1,0 +1,6 @@
+npm error code ENOTEMPTY
+npm error syscall rename
+npm error path /home/dev/app/node_modules/webpack
+npm error dest /home/dev/app/node_modules/.webpack-Xk2b1aQz
+npm error errno -39
+npm error ENOTEMPTY: directory not empty, rename '/home/dev/app/node_modules/webpack' -> '/home/dev/app/node_modules/.webpack-Xk2b1aQz'

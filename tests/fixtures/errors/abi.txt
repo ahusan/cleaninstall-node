@@ -1,0 +1,23 @@
+node:internal/modules/cjs/loader:1939
+  return process.dlopen(module, path.toNamespacedPath(filename));
+                 ^
+
+Error: The module '/home/dev/app/node_modules/old-native/build/Release/old.node'
+was compiled against a different Node.js version using
+NODE_MODULE_VERSION 115. This version of Node.js requires
+NODE_MODULE_VERSION 127. Please try re-compiling or re-installing
+the module (for instance, using `npm rebuild` or `npm install`).
+    at Object..node (node:internal/modules/cjs/loader:1939:18)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at [eval]:1:1
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [eval]-wrapper:6:24 {
+  code: 'ERR_DLOPEN_FAILED'
+}
+
+Node.js v22.23.5

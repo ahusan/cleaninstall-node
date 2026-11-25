@@ -566,6 +566,7 @@ program
   .option("--fix", "apply the suggested fix (rebuild, install, or clean reinstall)")
   .option("--json", "print the report as JSON")
   .option("--no-native", "skip loading native modules")
+  .option("--from-error [text]", "explain an error message in the context of this project (pass the text, or pipe it in)")
   .action(async (options) => {
     try {
       const { execa } = await import("execa");

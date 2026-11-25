@@ -1,0 +1,11 @@
+ ERR_PNPM_UNSUPPORTED_ENGINE  Unsupported environment (bad pnpm and/or Node.js version)
+
+This error happened while installing a direct dependency of /home/dev/app
+
+Your Node version is incompatible with "file:dep".
+
+Expected version: >=99
+Got: v22.23.5
+
+This is happening because the package's manifest has an engines.node field specified.
+To fix this issue, install the required Node version.

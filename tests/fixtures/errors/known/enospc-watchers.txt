@@ -1,0 +1,5 @@
+Error: ENOSPC: System limit for number of file watchers reached, watch '/home/dev/app/src'
+    at FSWatcher.<computed> (node:internal/fs/watchers:247:19)
+  errno: -28,
+  syscall: 'watch',
+  code: 'ENOSPC',

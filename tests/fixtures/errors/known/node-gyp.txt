@@ -1,0 +1,8 @@
+npm error path /home/dev/app/node_modules/better-sqlite3
+npm error command failed
+npm error command sh -c prebuild-install || node-gyp rebuild --release
+npm error prebuild-install warn install No prebuilt binaries found (target=25.0.0 runtime=node arch=x64 libc= platform=linux)
+npm error gyp ERR! find Python
+npm error gyp ERR! find Python You need to install the latest version of Python.
+npm error gyp ERR! configure error
+npm error gyp ERR! stack Error: Could not find any Python installation to use

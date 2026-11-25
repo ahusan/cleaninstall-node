@@ -1,0 +1,26 @@
+/home/dev/app/node_modules/sharp/lib/sharp.js:113
+  throw new Error(help.join('\n'));
+  ^
+
+Error: Could not load the "sharp" module using the linux-x64 runtime
+Possible solutions:
+- Ensure optional dependencies can be installed:
+    npm install --include=optional sharp
+- Ensure your package manager supports multi-platform installation:
+    See https://sharp.pixelplumbing.com/install#cross-platform
+- Add platform-specific dependencies:
+    npm install --os=linux --cpu=x64 sharp
+- Consult the installation documentation:
+    See https://sharp.pixelplumbing.com/install
+    at Object.<anonymous> (/home/dev/app/node_modules/sharp/lib/sharp.js:113:9)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+    at Object..js (node:internal/modules/cjs/loader:1913:10)
+    at Module.load (node:internal/modules/cjs/loader:1505:32)
+    at Function._load (node:internal/modules/cjs/loader:1309:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+    at Module.require (node:internal/modules/cjs/loader:1527:12)
+    at require (node:internal/modules/helpers:147:16)
+    at Object.<anonymous> (/home/dev/app/node_modules/sharp/lib/constructor.js:10:1)
+    at Module._compile (node:internal/modules/cjs/loader:1781:14)
+
+Node.js v22.23.5

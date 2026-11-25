@@ -97,6 +97,51 @@ Smallest fix (run with --fix to apply):
 
 Native addons are loaded in a separate short-lived process, so a crashing addon can't take `doctor` down. Skip that check with `--no-native`.
 
+### Paste the error: `--from-error`
+
+Start from the error you actually got. `doctor --from-error` explains what it means **for this project** and folds it into the fix plan:
+
+```bash
+npm run dev 2>&1 | npx cleaninstall-node doctor --from-error     # pipe it in
+npx cleaninstall-node doctor --from-error "Cannot find module 'axios'"
+npx cleaninstall-node doctor --from-error --fix                   # and fix it
+```
+
+```
+🩺 cleaninstall-node doctor --from-error — ~/code/app (npm)
+
+What the error means
+  ✖ axios is in package.json but not installed
+      axios (^1.7.0) is declared, but node_modules doesn't have it: the install is missing or out of date.
+
+In this project
+  ✖ 2 dependencies are not installed   ← likely related
+  ✔ 1 other check passed
+
+Smallest fix (run with --fix to apply):
+  → npm install
+```
+
+The same error can need different fixes. `Cannot find module 'x'` gets a different answer when `x` is declared but not installed (install it), only present through another package (add it to package.json), installed at the wrong version, a relative import (a code problem, so no reinstall), or a Node built-in. Recognised errors:
+
+| Error | Example | What it suggests |
+| --- | --- | --- |
+| Native module, wrong Node | `NODE_MODULE_VERSION 115 … requires 127` | Rebuild that one package |
+| Native module, wrong OS/CPU | `invalid ELF header` | Rebuild that package, and stop sharing node_modules with Docker |
+| Platform binary missing | rollup, esbuild, sharp, swc `…-linux-x64` | Clean reinstall |
+| Module not found | Node CJS/ESM, Vite, webpack, Next.js, `TS2307` | Depends on the project (see above) |
+| Command not found | `sh: vite: not found`, `'tsc' is not recognized` | Install, `npx`, or which package to add |
+| ESM-only package | `ERR_REQUIRE_ESM` | Newer Node, `import()`, or pin the old major |
+| Subpath not exported | `ERR_PACKAGE_PATH_NOT_EXPORTED` | Check the installed major |
+| Lockfile out of sync | `npm ci`, `ERR_PNPM_OUTDATED_LOCKFILE`, yarn `--frozen-lockfile` | Install locally and commit the lockfile |
+| Peer conflict | `ERESOLVE` | Align versions (`--legacy-peer-deps` only as a last resort) |
+| Wrong Node for a dependency | `EBADENGINE`, yarn/pnpm engine errors | Switch Node (blocks `--fix`) |
+| Wrong package manager | Corepack mismatch, npm on `workspace:` | Use the declared package manager |
+| Broken install | `ENOTEMPTY`, interrupted installs | Clean reinstall |
+| Other | `EINTEGRITY`, `EACCES`, disk full vs. file-watcher `ENOSPC`, `gyp ERR!` | Specific steps |
+
+With `--json`, the report includes `error.matches` for agents and scripts. An error it doesn't recognise still gets the normal doctor checks.
+
 ## Git hook: know when to reinstall
 
 You pull, switch branches or rebase, the lockfile changes, nobody reinstalls, and an hour later something fails in a confusing way. The hook catches that moment:
