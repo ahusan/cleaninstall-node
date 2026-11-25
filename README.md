@@ -14,6 +14,7 @@ A powerful, workspace-aware utility to clean up Node.js project files like `node
 - **Glob Pattern Support:** Use glob patterns (e.g., `*.log`, `dist-*`) in configuration for flexible matching.
 - **Dry Run Mode:** See what would be deleted without actually removing anything.
 - **`doctor`:** Diagnoses *why* an install is broken (stale lockfile, wrong Node, native ABI mismatch, mixed package managers) and applies the smallest fix.
+- **Git hook:** Warns (or reinstalls) right after a pull, branch switch or rebase changes your dependencies.
 - **Safe by default:** Shows what will be removed and asks once before deleting (skip with `-y`). Lockfiles are kept unless you pass `--lockfiles`.
 - **Interactive Mode:** Confirm each deletion individually.
 - **Auto-Install:** Runs `npm`, `yarn`, `pnpm` or `bun` install after cleanup, detected from the `packageManager` field or your lockfile.
@@ -85,6 +86,36 @@ Smallest fix (run with --fix to apply):
 | yarn system | yarn v1 installed under a different Node ABI or platform | `install` |
 
 Native addons are loaded in a separate short-lived process, so a crashing addon can't take `doctor` down. Skip that check with `--no-native`.
+
+## Git hook: know when to reinstall
+
+You pull, switch branches or rebase, the lockfile changes, nobody reinstalls, and an hour later something fails in a confusing way. The hook catches that moment:
+
+```bash
+npx cleaninstall-node hook install                 # warn (default)
+npx cleaninstall-node hook install --mode install  # run the install / rebuild automatically
+npx cleaninstall-node hook uninstall
+```
+
+```
+$ git pull
+📦 cleaninstall-node: dependencies changed (package-lock.json, package.json)
+   ✖ node_modules is out of sync with package-lock.json (3 differences)
+   → run: npm install
+   (or: npx cleaninstall-node doctor --fix)
+```
+
+- Runs on `post-checkout` (branch switch), `post-merge` (pull/merge) and `post-rewrite` (rebase, reported once at the end).
+- **Fast:** it first checks which files changed. Unless a lockfile, `package.json`, `pnpm-workspace.yaml`, `.nvmrc`/`.node-version`, `.npmrc` or `.yarnrc.yml` changed, it exits immediately. When one did, it runs `doctor`'s checks and stays **silent if `node_modules` already matches**.
+- **Safe:** `--mode install` only ever runs an install or a targeted rebuild. It never deletes `node_modules`, and does nothing when you're on the wrong Node version. A hook can't fail your git command.
+- **Plays well with others:** if husky manages your hooks, the hook goes into `.husky/` so you can commit it for the whole team. Existing hook scripts are kept, and only a marked block is added or removed.
+- Skipped when `CI` is set. Skip once with `CLEANINSTALL_SKIP_HOOK=1 git pull`; override the mode per shell with `CLEANINSTALL_HOOK_MODE=warn|install`.
+
+To give every teammate the hook without husky, add it to `prepare` (this needs `cleaninstall-node` in `devDependencies`):
+
+```json
+{ "scripts": { "prepare": "cleaninstall-node hook install" } }
+```
 
 ## Installation
 

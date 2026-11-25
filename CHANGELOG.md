@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`cleaninstall-node doctor`**: diagnoses why an install is broken (Node version vs `.nvmrc`/`engines`, node_modules out of sync with the lockfile for npm/pnpm/yarn, missing or out-of-range dependencies, native modules built for another Node ABI or platform, node_modules written by a different package manager, multiple lockfiles, pnpm ignored builds) and with `--fix` applies the smallest fix: targeted `rebuild`, `install`, or a clean reinstall. `--json` for CI; exits 1 on errors.
+- **`cleaninstall-node hook install`**: `post-checkout`, `post-merge` and `post-rewrite` hooks that notice when a branch switch, pull or rebase changed dependency files and `node_modules` is now stale, then warn with the exact command (default) or run the install/targeted rebuild (`--mode install`). Silent and fast when nothing relevant changed; uses `.husky/` when husky is set up; keeps existing hook content; skipped in CI.
 - Bun support: `bun.lock` / `bun.lockb` detection and `bun install`.
 - `packageManager` field (Corepack) is used for package manager detection.
 - `cleanup()` now resolves to a result object (`removed`, `skipped`, `failed`, `totalSize`, ...).

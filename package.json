@@ -34,7 +34,10 @@
     "cli",
     "doctor",
     "native-modules",
-    "rebuild"
+    "rebuild",
+    "git-hooks",
+    "post-checkout",
+    "husky"
   ],
   "author": "ahusan <email@ahusan.dev>",
   "license": "MIT",

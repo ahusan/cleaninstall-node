@@ -576,6 +576,58 @@ program
     }
   });
 
+const hookCmd = program
+  .command("hook")
+  .description("git hooks that warn (or install) when a checkout, pull or rebase changes dependencies");
+
+hookCmd
+  .command("install")
+  .description("add post-checkout, post-merge and post-rewrite hooks (uses .husky/ when husky is set up)")
+  .option("-d, --dir <directory>", "repository directory (defaults to current directory)")
+  .option("--mode <mode>", "warn: print what to run (default); install: run install/rebuild automatically", "warn")
+  .action((options) => {
+    try {
+      const res = require("../lib/hook").installHooks(options);
+      const where = res.kind === "husky" ? " (husky — commit these so your team gets them)" : "";
+      console.log(`✅ Installed cleaninstall-node hooks in ${res.dir}${where}`);
+      for (const f of res.files) console.log(`   ${f}`);
+      console.log(`   mode: ${res.mode}. Skip once with CLEANINSTALL_SKIP_HOOK=1.`);
+    } catch (error) {
+      console.error("❌ Could not install hooks:", error.message);
+      process.exit(1);
+    }
+  });
+
+hookCmd
+  .command("uninstall")
+  .description("remove cleaninstall-node from the git hooks (other hook content is kept)")
+  .option("-d, --dir <directory>", "repository directory (defaults to current directory)")
+  .action((options) => {
+    try {
+      const res = require("../lib/hook").uninstallHooks(options);
+      console.log(res.files.length ? `✅ Removed cleaninstall-node from ${res.files.length} hook(s) in ${res.dir}` : "Nothing to remove.");
+    } catch (error) {
+      console.error("❌ Could not uninstall hooks:", error.message);
+      process.exit(1);
+    }
+  });
+
+hookCmd
+  .command("run <event> [args...]")
+  .description("run by the installed git hooks")
+  .option("--mode <mode>", "warn or install", "warn")
+  .allowUnknownOption()
+  .action(async (event, args, options) => {
+    // A hook must never break the git command that triggered it.
+    try {
+      const { execa } = await import("execa");
+      await require("../lib/hook").runHook(event, args || [], { mode: options.mode, execa });
+    } catch {
+      // swallow
+    }
+    process.exitCode = 0;
+  });
+
 if (require.main === module) {
   program.parse(process.argv);
 }
