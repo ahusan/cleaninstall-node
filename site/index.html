@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cleaninstall-node — stop deleting node_modules blindly</title>
+<meta name="description" content="A CLI that diagnoses broken Node.js installs, applies the smallest fix, warns you after git pull, and cleans safely across monorepos. npm, pnpm, yarn and bun.">
+<meta property="og:title" content="cleaninstall-node">
+<meta property="og:description" content="Stop deleting node_modules blindly. Diagnose broken installs, apply the smallest fix, get warned after git pull.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2316a34a'/%3E%3Cpath d='M9 17l4.5 4.5L23 11' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfbf9;
+    --bg-alt: #f2f2ee;
+    --surface: #ffffff;
+    --border: #e3e3dc;
+    --text: #17181a;
+    --muted: #5d6066;
+    --accent: #15803d;
+    --accent-strong: #166534;
+    --accent-soft: #e6f4ea;
+    --term-bg: #121416;
+    --term-text: #d8dadd;
+    --term-muted: #7c828a;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --err: #f87171;
+    --cmd: #93c5fd;
+    --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+    --radius: 14px;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f10; --bg-alt: #131618; --surface: #171a1c; --border: #262a2e;
+      --text: #ecedee; --muted: #9aa0a6; --accent: #4ade80; --accent-strong: #86efac;
+      --accent-soft: #10291a; --term-bg: #08090a; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f10; --bg-alt: #131618; --surface: #171a1c; --border: #262a2e;
+    --text: #ecedee; --muted: #9aa0a6; --accent: #4ade80; --accent-strong: #86efac;
+    --accent-soft: #10291a; --term-bg: #08090a; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.6 var(--sans); -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre, kbd { font-family: var(--mono); }
+  :not(pre) > code {
+    font-size: .88em; background: var(--bg-alt); border: 1px solid var(--border);
+    padding: .1em .38em; border-radius: 6px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  section { padding: 72px 0; }
+  section.alt { background: var(--bg-alt); border-block: 1px solid var(--border); }
+  h1, h2, h3 { line-height: 1.15; letter-spacing: -.02em; margin: 0 0 .5em; }
+  h2 { font-size: clamp(1.6rem, 3.5vw, 2.2rem); }
+  h3 { font-size: 1.1rem; letter-spacing: -.01em; }
+  .eyebrow {
+    font: 600 .78rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 14px;
+  }
+  .lede { color: var(--muted); font-size: 1.08rem; max-width: 680px; }
+
+  /* Header */
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 85%, transparent);
+    backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .top .wrap { display: flex; align-items: center; gap: 20px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font: 700 1rem var(--mono); color: var(--text); white-space: nowrap; }
+  .brand:hover { text-decoration: none; }
+  .logo { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); display: grid; place-items: center; }
+  .logo svg { width: 16px; height: 16px; }
+  nav.links { display: flex; gap: 22px; margin-left: auto; align-items: center; }
+  nav.links a { color: var(--muted); font-size: .93rem; font-weight: 500; }
+  nav.links a:hover { color: var(--text); text-decoration: none; }
+  .ver {
+    font: 600 .75rem var(--mono); color: var(--accent); background: var(--accent-soft);
+    padding: 3px 8px; border-radius: 999px;
+  }
+  .icon-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px;
+    width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
+  }
+  .icon-btn:hover { color: var(--text); }
+  @media (max-width: 720px) { nav.links a.hide-sm { display: none; } nav.links { gap: 14px; } }
+  @media (max-width: 480px) { .ver { display: none; } .top .wrap { gap: 12px; } .brand { font-size: .92rem; } }
+
+  /* Hero */
+  .hero { padding: 84px 0 64px; }
+  .hero h1 { font-size: clamp(2.3rem, 6vw, 4rem); font-weight: 800; max-width: 860px; }
+  .hero h1 em { font-style: normal; color: var(--accent); }
+  .hero .lede { font-size: 1.18rem; margin-bottom: 30px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: .97rem;
+    padding: 12px 18px; border-radius: 10px; border: 1px solid var(--border);
+    color: var(--text); background: var(--surface); cursor: pointer;
+  }
+  .btn:hover { text-decoration: none; border-color: var(--muted); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  :root[data-theme="dark"] .btn.primary { color: #052e16; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #052e16; } }
+  .btn.primary:hover { filter: brightness(1.07); }
+  .pms { margin-top: 26px; color: var(--muted); font-size: .9rem; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pill { font: 500 .8rem var(--mono); border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; background: var(--surface); }
+
+  /* Copy box */
+  .copy {
+    display: inline-flex; align-items: center; gap: 12px; max-width: 100%;
+    background: var(--term-bg); color: var(--term-text); border-radius: 10px;
+    padding: 11px 12px 11px 16px; font: 500 .95rem var(--mono);
+  }
+  .copy .p { color: var(--term-muted); user-select: none; }
+  .copy code { overflow-x: auto; white-space: nowrap; background: none; border: 0; padding: 0; color: inherit; font-size: inherit; }
+  .copy button {
+    background: #24282c; border: 0; color: var(--term-text); border-radius: 7px; cursor: pointer;
+    font: 600 .75rem var(--sans); padding: 6px 10px; flex: none;
+  }
+  .copy button:hover { background: #30353a; }
+  .copy.block { display: flex; width: 100%; }
+  .copy.block code { flex: 1; }
+
+  /* Terminal */
+  .term {
+    background: var(--term-bg); color: var(--term-text); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; border: 1px solid #1f2326;
+  }
+  .term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 14px; border-bottom: 1px solid #1f2326; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: #2d3135; }
+  .term-tabs { display: flex; gap: 4px; margin-left: 12px; flex-wrap: wrap; }
+  .term-tabs button {
+    background: none; border: 0; color: var(--term-muted); font: 500 .8rem var(--mono);
+    padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .term-tabs button[aria-selected="true"] { background: #1d2124; color: var(--term-text); }
+  .term pre {
+    margin: 0; padding: 20px 22px 24px; font-size: .84rem; line-height: 1.65;
+    overflow-x: auto; min-height: 330px;
+  }
+  .term .c { color: var(--cmd); }
+  .term .m { color: var(--term-muted); }
+  .term .ok { color: var(--ok); }
+  .term .w { color: var(--warn); }
+  .term .e { color: var(--err); }
+  .term .b { color: #fff; font-weight: 600; }
+  :root[data-theme="light"] .term .b { color: #fff; }
+
+  /* Grids & cards */
+  .grid { display: grid; gap: 18px; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 900px) { .g3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .g3, .g2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 22px; box-shadow: var(--shadow);
+  }
+  .card p { color: var(--muted); margin: 0; font-size: .95rem; }
+  .card .tag { font: 600 .72rem var(--mono); color: var(--accent); margin-bottom: 10px; display: block; letter-spacing: .04em; }
+  .feature-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .badge-ico {
+    width: 34px; height: 34px; border-radius: 9px; background: var(--accent-soft); color: var(--accent);
+    display: grid; place-items: center; flex: none;
+  }
+  .badge-ico svg { width: 18px; height: 18px; }
+  .feature-head h3 { margin: 0; }
+
+  .split > *, .grid > * { min-width: 0; }
+  .split { display: grid; grid-template-columns: 1fr 1.15fr; gap: 40px; align-items: center; }
+  @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+  .split .term pre { min-height: 0; }
+
+  /* Ladder */
+  .ladder { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 30px; counter-reset: step; }
+  @media (max-width: 760px) { .ladder { grid-template-columns: 1fr; } }
+  .rung { position: relative; padding: 22px; border: 1px solid var(--border); background: var(--surface); }
+  .rung:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .rung:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+  @media (max-width: 760px) {
+    .rung:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+    .rung:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+  }
+  .rung + .rung { border-left: 0; }
+  @media (max-width: 760px) { .rung + .rung { border-left: 1px solid var(--border); border-top: 0; } }
+  .rung .n { font: 700 .75rem var(--mono); color: var(--muted); }
+  .rung h3 { margin: 6px 0 6px; }
+  .rung code { font-size: .8rem; }
+  .rung p { color: var(--muted); font-size: .92rem; margin: 8px 0 0; }
+  .meter { height: 5px; border-radius: 3px; background: var(--bg-alt); margin-top: 14px; overflow: hidden; }
+  .meter span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+
+  /* Checks table */
+  .checks { width: 100%; border-collapse: collapse; margin-top: 28px; font-size: .94rem; }
+  .checks th, .checks td { text-align: left; padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .checks th { font: 600 .74rem var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .checks td:first-child { font-weight: 600; white-space: nowrap; }
+  .checks td:nth-child(2) { color: var(--muted); }
+  .checks td:last-child { font-family: var(--mono); font-size: .82rem; white-space: nowrap; }
+  .table-scroll { overflow-x: auto; }
+  @media (max-width: 640px) { .checks td:first-child, .checks td:last-child { white-space: normal; } }
+
+  ul.ticks { list-style: none; padding: 0; margin: 18px 0 0; }
+  ul.ticks li { padding-left: 28px; position: relative; margin: 10px 0; color: var(--muted); }
+  ul.ticks li b { color: var(--text); font-weight: 600; }
+  ul.ticks li::before {
+    content: ""; position: absolute; left: 0; top: .42em; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent-soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' stroke='%2316a34a' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat;
+  }
+
+  /* Install */
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 18px; flex-wrap: wrap; }
+  .tabs button {
+    background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted);
+    font: 600 .92rem var(--sans); padding: 10px 12px; cursor: pointer; margin-bottom: -1px;
+  }
+  .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+  .panel[hidden] { display: none; }
+  .install-row { margin-bottom: 14px; }
+  .install-row label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .dl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .small { font-size: .88rem; color: var(--muted); }
+
+  .upgrade { border-left: 3px solid var(--warn); }
+  .upgrade ul { margin: 10px 0 0; padding-left: 20px; color: var(--muted); }
+  .upgrade li { margin: 6px 0; }
+
+  footer { padding: 40px 0 56px; color: var(--muted); font-size: .9rem; border-top: 1px solid var(--border); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; }
+  footer .sp { margin-left: auto; }
+
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 8px;
+    font-size: .88rem; font-weight: 600; opacity: 0; transition: .2s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .toast { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <span class="logo" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3.5 8.5l3 3L12.5 5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      cleaninstall-node
+    </a>
+    <span class="ver" id="ver">v3.0.0</span>
+    <nav class="links">
+      <a href="#doctor" class="hide-sm">Doctor</a>
+      <a href="#hook" class="hide-sm">Git hook</a>
+      <a href="#clean" class="hide-sm">Clean</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/ahusan/cleaninstall-node" aria-label="GitHub">GitHub</a>
+      <button class="icon-btn" id="theme" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">CLI for npm · pnpm · yarn · bun</div>
+    <h1>Stop deleting <code style="font-size:.85em;border:0;background:none;padding:0">node_modules</code>. <em>Find out why it broke.</em></h1>
+    <p class="lede">
+      <b>cleaninstall-node</b> diagnoses broken installs and applies the smallest fix that works,
+      warns you the moment a <code>git pull</code> changes your dependencies, and cleans safely
+      across monorepos when you really do want a fresh start.
+    </p>
+    <div class="cta">
+      <div class="copy" data-copy="npx cleaninstall-node doctor">
+        <span class="p">$</span><code>npx cleaninstall-node doctor</code><button type="button">Copy</button>
+      </div>
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="https://github.com/ahusan/cleaninstall-node">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        Source
+      </a>
+    </div>
+    <div class="pms"><span>Works with</span><span class="pill">npm</span><span class="pill">pnpm</span><span class="pill">yarn</span><span class="pill">bun</span><span class="pill">workspaces</span><span class="pill">husky</span></div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="term" id="demo">
+      <div class="term-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <div class="term-tabs" role="tablist" aria-label="Examples">
+          <button role="tab" aria-selected="true" data-demo="doctor">doctor</button>
+          <button role="tab" aria-selected="false" data-demo="hook">git pull</button>
+          <button role="tab" aria-selected="false" data-demo="clean">clean</button>
+        </div>
+      </div>
+<pre data-demo-panel="doctor"><span class="c">$ npx cleaninstall-node doctor</span>
+
+<span class="b">🩺 cleaninstall-node doctor — ~/code/app (npm)</span>
+
+  <span class="e">✖</span> node_modules is out of sync with package-lock.json (1 difference)
+      <span class="m">ms: installed 2.1.3, lockfile 2.1.2</span>
+      <span class="m">Usually happens after git pull / switching branches without reinstalling.</span>
+  <span class="e">✖</span> 1 native module was built for a different Node version
+      <span class="m">better-sqlite3: built for ABI 115, this Node needs 127</span>
+  <span class="ok">✔</span> Node v22.11.0 matches .nvmrc (22)
+  <span class="ok">✔</span> All 42 direct dependencies installed and in range
+
+2 errors, 0 warnings.
+
+Smallest fix (run with --fix to apply):
+  <span class="c">→ npm install</span>
+  <span class="c">→ npm rebuild better-sqlite3</span></pre>
+<pre data-demo-panel="hook" hidden><span class="c">$ git pull</span>
+<span class="m">Updating 3bd10e1..0ee145e
+Fast-forward
+ package-lock.json | 6 +++---
+ package.json      | 2 +-</span>
+
+<span class="b">📦 cleaninstall-node: dependencies changed (package-lock.json, package.json)</span>
+   <span class="e">✖</span> node_modules is out of sync with package-lock.json (1 difference)
+   <span class="c">→ run: npm install</span>
+   <span class="m">(or: npx cleaninstall-node doctor --fix)</span>
+
+<span class="c">$ git checkout feature/docs</span>
+<span class="m">Switched to branch 'feature/docs'</span>
+<span class="m"># only README changed — the hook stays silent</span></pre>
+<pre data-demo-panel="clean" hidden><span class="c">$ npx cleaninstall-node --install</span>
+
+Will remove:
+  apps/web/.next/  <span class="m">(412.3 MB)</span>
+  apps/web/node_modules/  <span class="m">(286.0 MB)</span>
+  node_modules/  <span class="m">(1.21 GB)</span>
+  packages/ui/dist/  <span class="m">(3.4 MB)</span>
+
+Delete 4 item(s), 1.90 GB? (y/N) <span class="b">y</span>
+
+<span class="ok">✅ Cleanup completed successfully!</span>
+
+📊 Summary:
+   - Items removed: 4
+   - Space freed: 1.90 GB
+   - Time: 2.41s
+
+<span class="b">📦 Running pnpm install...</span></pre>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="eyebrow">Three tools, one install</div>
+    <h2>The fix is rarely “delete everything”</h2>
+    <p class="lede">Most broken installs have one specific cause. cleaninstall-node finds it, tells you, and fixes only that, so you can skip the five-minute reinstall.</p>
+    <div class="grid g3" style="margin-top:30px">
+      <div class="card">
+        <div class="feature-head"><span class="badge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span><h3>doctor</h3></div>
+        <p>Checks your Node version, lockfile sync, dependency ranges, native modules and package manager, then suggests the smallest fix. <code>--fix</code> applies it.</p>
+      </div>
+      <div class="card">
+        <div class="feature-head"><span class="badge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/><circle cx="18" cy="6" r="3"/><path d="M6 9v6"/></svg></span><h3>git hook</h3></div>
+        <p>After a pull, branch switch or rebase changes your dependencies, it warns you (or runs the install) before you hit a confusing error.</p>
+      </div>
+      <div class="card">
+        <div class="feature-head"><span class="badge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></span><h3>clean</h3></div>
+        <p>Workspace-aware removal of <code>node_modules</code>, build output and caches. It shows sizes, asks once, and keeps your lockfiles unless you say otherwise.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="doctor">
+  <div class="wrap">
+    <div class="eyebrow">doctor</div>
+    <h2>Diagnose first. Fix the smallest thing.</h2>
+    <p class="lede"><code>doctor</code> looks at what's actually installed, compares it with what your project asks for, and suggests the least disruptive repair.</p>
+
+    <div class="ladder">
+      <div class="rung">
+        <span class="n">01 · TRIED FIRST</span>
+        <h3>Rebuild one package</h3>
+        <code>npm rebuild better-sqlite3</code>
+        <p>A native module was built for another Node version or for another OS/CPU (a Docker volume, Rosetta).</p>
+        <div class="meter" aria-hidden="true"><span style="width:12%"></span></div>
+      </div>
+      <div class="rung">
+        <span class="n">02</span>
+        <h3>Install</h3>
+        <code>npm install</code>
+        <p>node_modules doesn't match the lockfile, or a dependency is missing or out of range.</p>
+        <div class="meter" aria-hidden="true"><span style="width:45%"></span></div>
+      </div>
+      <div class="rung">
+        <span class="n">03 · LAST RESORT</span>
+        <h3>Clean reinstall</h3>
+        <code>rm node_modules + install</code>
+        <p>Only when node_modules was written by a different package manager than the project uses.</p>
+        <div class="meter" aria-hidden="true"><span style="width:100%"></span></div>
+      </div>
+    </div>
+    <p class="small" style="margin-top:14px">On the wrong Node version, <code>--fix</code> does nothing and tells you to switch first, so nothing gets rebuilt for the wrong Node.</p>
+
+    <div class="table-scroll">
+    <table class="checks">
+      <thead><tr><th>Check</th><th>Catches</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Node version</td><td>Running Node vs <code>.nvmrc</code>, <code>.node-version</code>, <code>.tool-versions</code>, Volta, <code>engines.node</code></td><td>nvm use</td></tr>
+        <tr><td>Lockfile sync</td><td>node_modules doesn't match the lockfile, e.g. after a pull (npm, pnpm, yarn&nbsp;1)</td><td>install</td></tr>
+        <tr><td>Direct dependencies</td><td>A dependency is missing or installed outside its range, including in workspaces</td><td>install</td></tr>
+        <tr><td>Native modules</td><td>A <code>.node</code> addon was built for another Node ABI or OS/CPU. Each is loaded in a separate process</td><td>rebuild &lt;pkg&gt;</td></tr>
+        <tr><td>Installer</td><td>node_modules was written by npm, but the project uses pnpm (or similar)</td><td>clean reinstall</td></tr>
+        <tr><td>Lockfiles</td><td>More than one package manager's lockfile, a mismatch with <code>packageManager</code>, or no lockfile</td><td>by hand</td></tr>
+        <tr><td>pnpm builds</td><td>pnpm 10 skipped a package's build scripts</td><td>pnpm approve-builds</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p class="small" style="margin-top:16px"><code>--json</code> gives machine-readable output, and the exit code is 1 when there are errors, so it works in CI too.</p>
+  </div>
+</section>
+
+<section id="hook" class="alt">
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">git hook</div>
+      <h2>Know when to reinstall, right when it happens</h2>
+      <p class="lede">Someone bumps a dependency and you pull. Nobody reinstalls, and an hour later the build breaks in a confusing way. The hook catches the moment the lockfile changes.</p>
+      <ul class="ticks">
+        <li><b>Silent unless it matters.</b> If no dependency file changed, or node_modules already matches, you see nothing.</li>
+        <li><b>Warn or auto-install.</b> <code>--mode install</code> runs the install or a targeted rebuild, and never deletes node_modules.</li>
+        <li><b>Team-wide with husky.</b> It writes to <code>.husky/</code> so you can commit it, and keeps your existing hooks.</li>
+        <li><b>Never breaks git.</b> It's skipped in CI, and <code>CLEANINSTALL_SKIP_HOOK=1</code> skips it once.</li>
+      </ul>
+    </div>
+    <div>
+      <div class="copy block" data-copy="npx cleaninstall-node hook install" style="margin-bottom:14px">
+        <span class="p">$</span><code>npx cleaninstall-node hook install</code><button type="button">Copy</button>
+      </div>
+      <div class="term">
+<pre><span class="c">$ git checkout release/2.4</span>
+<span class="m">Switched to branch 'release/2.4'</span>
+
+<span class="b">📦 cleaninstall-node: dependencies changed (pnpm-lock.yaml)</span>
+   <span class="e">✖</span> node_modules is out of sync with pnpm-lock.yaml (3 differences)
+   <span class="c">→ run: pnpm install</span>
+   <span class="m">(or: npx cleaninstall-node doctor --fix)</span></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="clean">
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">clean</div>
+      <h2>When you really want a fresh start, do it safely</h2>
+      <p class="lede">Finds every workspace from <code>package.json</code> or <code>pnpm-workspace.yaml</code> and cleans it in one go.</p>
+      <ul class="ticks">
+        <li><b>Asks once,</b> with the full list and sizes. Use <code>-y</code> in scripts; CI and pipes don't prompt.</li>
+        <li><b>Keeps lockfiles by default</b>, so a “clean install” doesn't quietly upgrade your dependencies. Use <code>--lockfiles</code> for a full reset.</li>
+        <li><b>Knows framework output:</b> <code>.next</code>, <code>.nuxt</code>, <code>.svelte-kit</code>, <code>.astro</code>, <code>.turbo</code>, <code>.vite</code>, <code>coverage</code> and more.</li>
+        <li><b>Reinstalls with the right tool,</b> detected from <code>packageManager</code> or your lockfile.</li>
+        <li><b>Dry run and interactive modes</b>, plus config in <code>package.json</code> or <code>.cleaninstallnoderc</code>.</li>
+      </ul>
+    </div>
+    <div class="term">
+<pre><span class="c">$ npx cleaninstall-node --dry-run</span>
+
+[Dry Run] Would remove:
+  dist/  <span class="m">(1.2 MB)</span>
+  node_modules/  <span class="m">(293.0 MB)</span>
+
+<span class="ok">✅ Cleanup (Dry Run) completed successfully!</span>
+
+📊 Summary:
+   - Items would be removed: 2
+   - Space to be freed: 294.2 MB</pre>
+    </div>
+  </div>
+</section>
+
+<section id="install" class="alt">
+  <div class="wrap">
+    <div class="eyebrow">Install</div>
+    <h2>Get cleaninstall-node</h2>
+    <p class="lede">Run it once with no install, add it to your project so the git hook works for everyone, or install it globally. Requires Node.js 20+.</p>
+
+    <div class="grid g2" style="margin-top:28px; align-items:start">
+      <div class="card">
+        <div class="tabs" role="tablist" aria-label="Package manager">
+          <button role="tab" aria-selected="true" data-pm="npm">npm</button>
+          <button role="tab" aria-selected="false" data-pm="pnpm">pnpm</button>
+          <button role="tab" aria-selected="false" data-pm="yarn">yarn</button>
+          <button role="tab" aria-selected="false" data-pm="bun">bun</button>
+        </div>
+        <div class="install-row">
+          <label>Try it, no install</label>
+          <div class="copy block" data-pm-cmd="run"><span class="p">$</span><code></code><button type="button">Copy</button></div>
+        </div>
+        <div class="install-row">
+          <label>Add to your project (recommended for teams)</label>
+          <div class="copy block" data-pm-cmd="dev"><span class="p">$</span><code></code><button type="button">Copy</button></div>
+        </div>
+        <div class="install-row" style="margin-bottom:0">
+          <label>Install globally</label>
+          <div class="copy block" data-pm-cmd="global"><span class="p">$</span><code></code><button type="button">Copy</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <span class="tag">GIVE THE WHOLE TEAM THE HOOK</span>
+        <p style="margin-bottom:12px">With cleaninstall-node in <code>devDependencies</code>, add a <code>prepare</code> script. Everyone gets the git hook on their next install.</p>
+<div class="term" style="box-shadow:none"><pre style="min-height:0;padding:16px 18px">{
+  <span class="c">"scripts"</span>: {
+    <span class="c">"prepare"</span>: "cleaninstall-node hook install",
+    <span class="c">"doctor"</span>: "cleaninstall-node doctor",
+    <span class="c">"fresh"</span>: "cleaninstall-node -y --install"
+  }
+}</pre></div>
+        <span class="tag" style="margin-top:20px">DOWNLOAD</span>
+        <p>Prefer a file? Get the package tarball for <span id="dl-ver">the latest version</span>, or browse every release.</p>
+        <div class="dl">
+          <a class="btn" id="tarball" href="https://www.npmjs.com/package/cleaninstall-node?activeTab=versions">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Download .tgz
+          </a>
+          <a class="btn" href="https://github.com/ahusan/cleaninstall-node/releases">GitHub releases</a>
+          <a class="btn" href="https://www.npmjs.com/package/cleaninstall-node">npm</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card upgrade" style="margin-top:18px">
+      <h3 style="margin:0">Upgrading from 2.x</h3>
+      <ul>
+        <li><b>Lockfiles are kept</b> by default. Pass <code>--lockfiles</code> to remove them.</li>
+        <li><b>The CLI asks once</b> before deleting in a terminal. Add <code>-y</code> to scripts; CI and pipes don't prompt.</li>
+        <li><b>Node.js 20+</b> is required.</li>
+      </ul>
+      <p class="small" style="margin-top:10px">Full list in the <a href="https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md">changelog</a>.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span><b style="color:var(--text)">cleaninstall-node</b> · MIT licensed</span>
+    <a href="https://github.com/ahusan/cleaninstall-node#readme">Docs</a>
+    <a href="https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md">Changelog</a>
+    <a href="https://github.com/ahusan/cleaninstall-node/issues">Report an issue</a>
+    <a href="https://www.npmjs.com/package/cleaninstall-node">npm</a>
+    <span class="sp" id="dl-count"></span>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
+<script>
+(function () {
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+
+  // Theme
+  var root = document.documentElement;
+  var saved = store.get("theme");
+  if (saved === "light" || saved === "dark") root.setAttribute("data-theme", saved);
+  document.getElementById("theme").addEventListener("click", function () {
+    var current = root.getAttribute("data-theme") ||
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var next = current === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    store.set("theme", next);
+  });
+
+  // Copy buttons
+  var toast = document.getElementById("toast"), toastTimer;
+  function copied() {
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove("show"); }, 1400);
+  }
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest(".copy button");
+    if (!btn) return;
+    var box = btn.closest(".copy");
+    var text = box.getAttribute("data-copy") || box.querySelector("code").textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(copied, copied);
+    else copied();
+  });
+
+  // Demo tabs
+  var demoTabs = document.querySelectorAll("[data-demo]");
+  demoTabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      demoTabs.forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); });
+      document.querySelectorAll("[data-demo-panel]").forEach(function (p) {
+        p.hidden = p.getAttribute("data-demo-panel") !== tab.getAttribute("data-demo");
+      });
+    });
+  });
+
+  // Package manager tabs
+  var CMDS = {
+    npm:  { run: "npx cleaninstall-node doctor",       dev: "npm install -D cleaninstall-node", global: "npm install -g cleaninstall-node" },
+    pnpm: { run: "pnpm dlx cleaninstall-node doctor",  dev: "pnpm add -D cleaninstall-node",    global: "pnpm add -g cleaninstall-node" },
+    yarn: { run: "npx cleaninstall-node doctor",        dev: "yarn add -D cleaninstall-node",    global: "npm install -g cleaninstall-node" },
+    bun:  { run: "bunx cleaninstall-node doctor",      dev: "bun add -d cleaninstall-node",     global: "bun add -g cleaninstall-node" }
+  };
+  var pmTabs = document.querySelectorAll("[data-pm]");
+  function setPm(pm) {
+    if (!CMDS[pm]) pm = "npm";
+    pmTabs.forEach(function (t) { t.setAttribute("aria-selected", String(t.getAttribute("data-pm") === pm)); });
+    document.querySelectorAll("[data-pm-cmd]").forEach(function (box) {
+      box.querySelector("code").textContent = CMDS[pm][box.getAttribute("data-pm-cmd")];
+    });
+    store.set("pm", pm);
+  }
+  pmTabs.forEach(function (t) { t.addEventListener("click", function () { setPm(t.getAttribute("data-pm")); }); });
+  setPm(store.get("pm") || "npm");
+
+  // Live version + tarball from the npm registry (falls back to static text)
+  fetch("https://registry.npmjs.org/cleaninstall-node/latest")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (pkg) {
+      if (!pkg || !pkg.version) return;
+      document.getElementById("ver").textContent = "v" + pkg.version;
+      document.getElementById("dl-ver").textContent = "v" + pkg.version;
+      if (pkg.dist && pkg.dist.tarball) document.getElementById("tarball").href = pkg.dist.tarball;
+    })
+    .catch(function () {});
+  fetch("https://api.npmjs.org/downloads/point/last-month/cleaninstall-node")
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (d && d.downloads) document.getElementById("dl-count").textContent = d.downloads.toLocaleString() + " downloads last month";
+    })
+    .catch(function () {});
+})();
+</script>
+</body>
+</html>

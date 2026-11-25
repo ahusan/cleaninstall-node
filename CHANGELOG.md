@@ -5,12 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.0] - 2026-11-25
 
 ### Breaking
 - **Lockfiles are no longer removed by default.** Use `--lockfiles` (CLI) or `removeLockfiles: true` (config/API) to remove them.
 - **The CLI asks for confirmation** before deleting when run in a terminal. Use `-y`/`--yes` to skip. Non-TTY runs (CI, pipes) and the programmatic API don't prompt.
-- Requires Node.js 18+ (already required in practice by `glob` 11 and `execa` 9).
+- Requires Node.js 20+ (already required in practice by `glob` 11).
 
 ### Fixed
 - Files matching a directory pattern (e.g. a script named `build`) were deleted, and directories matching a file pattern were attempted with `unlink`. Matches are now type-checked.

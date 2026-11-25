@@ -1,7 +1,7 @@
 {
   "name": "cleaninstall-node",
-  "version": "2.2.3",
-  "description": "Clean up node_modules, lockfiles and build artifacts, or diagnose why an install is broken with `doctor`",
+  "version": "3.0.0",
+  "description": "Stop deleting node_modules blindly: diagnose broken installs, apply the smallest fix, get warned after git pull, and clean safely across monorepos.",
   "main": "index.js",
   "bin": {
     "cleaninstall-node": "bin/cleanup.js"
@@ -42,7 +42,7 @@
   "author": "ahusan <email@ahusan.dev>",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "repository": {
     "type": "git",
@@ -51,7 +51,7 @@
   "bugs": {
     "url": "https://github.com/ahusan/cleaninstall-node/issues"
   },
-  "homepage": "https://github.com/ahusan/cleaninstall-node#readme",
+  "homepage": "https://ahusan.github.io/cleaninstall-node/",
   "dependencies": {
     "commander": "^11.1.0",
     "execa": "^9.5.2",

@@ -3,9 +3,19 @@
 [![npm version](https://badge.fury.io/js/cleaninstall-node.svg)](https://www.npmjs.com/package/cleaninstall-node)
 [![Downloads](https://img.shields.io/npm/dm/cleaninstall-node.svg)](https://www.npmjs.com/package/cleaninstall-node)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/ahusan/cleaninstall-node/workflows/Node.js%20CI/badge.svg)](https://github.com/ahusan/cleaninstall-node/actions)
+[![CI](https://github.com/ahusan/cleaninstall-node/actions/workflows/ci.yml/badge.svg)](https://github.com/ahusan/cleaninstall-node/actions/workflows/ci.yml)
 
-A powerful, workspace-aware utility to clean up Node.js project files like `node_modules`, lock files, build artifacts, and more. Perfect for monorepos and single projects alike.
+**Stop deleting `node_modules` blindly.** `cleaninstall-node` finds out *why* an install is broken and applies the smallest fix, warns you right after a `git pull` changes your dependencies, and cleans safely when you really do want a fresh start. Works with npm, pnpm, yarn and bun, in single projects and monorepos.
+
+**[Website](https://ahusan.github.io/cleaninstall-node/)** · [npm](https://www.npmjs.com/package/cleaninstall-node) · [Changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md)
+
+```bash
+npx cleaninstall-node doctor         # what's wrong? (and --fix to repair it)
+npx cleaninstall-node hook install   # warn after pull/checkout/rebase
+npx cleaninstall-node --install      # clean + reinstall, safely
+```
+
+> **Upgrading from 2.x?** Lockfiles are now kept unless you pass `--lockfiles`, the CLI asks once before deleting (use `-y` in scripts), and Node.js 20+ is required. See the [changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md#300---2026-11-25).
 
 ## Features
 
