@@ -1,0 +1,87 @@
+Download https://jsr.io/@std/path/meta.json
+Download https://registry.npmjs.org/ms
+Download https://jsr.io/@std/path/1.1.6_meta.json
+Download https://jsr.io/@std/internal/meta.json
+Download https://jsr.io/@std/internal/1.0.14_meta.json
+Download https://jsr.io/@std/path/1.1.6/mod.ts
+Download https://jsr.io/@std/path/1.1.6/basename.ts
+Download https://jsr.io/@std/path/1.1.6/constants.ts
+Download https://jsr.io/@std/path/1.1.6/dirname.ts
+Download https://jsr.io/@std/path/1.1.6/extname.ts
+Download https://jsr.io/@std/path/1.1.6/format.ts
+Download https://jsr.io/@std/path/1.1.6/from_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/is_absolute.ts
+Download https://jsr.io/@std/path/1.1.6/join.ts
+Download https://jsr.io/@std/path/1.1.6/normalize.ts
+Download https://jsr.io/@std/path/1.1.6/parse.ts
+Download https://jsr.io/@std/path/1.1.6/relative.ts
+Download https://jsr.io/@std/path/1.1.6/resolve.ts
+Download https://jsr.io/@std/path/1.1.6/to_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/to_namespaced_path.ts
+Download https://jsr.io/@std/path/1.1.6/common.ts
+Download https://jsr.io/@std/path/1.1.6/types.ts
+Download https://jsr.io/@std/path/1.1.6/glob_to_regexp.ts
+Download https://jsr.io/@std/path/1.1.6/is_glob.ts
+Download https://jsr.io/@std/path/1.1.6/join_globs.ts
+Download https://jsr.io/@std/path/1.1.6/normalize_glob.ts
+Download https://jsr.io/@std/path/1.1.6/posix/basename.ts
+Download https://jsr.io/@std/path/1.1.6/windows/basename.ts
+Download https://jsr.io/@std/path/1.1.6/posix/dirname.ts
+Download https://jsr.io/@std/path/1.1.6/windows/dirname.ts
+Download https://jsr.io/@std/path/1.1.6/posix/extname.ts
+Download https://jsr.io/@std/path/1.1.6/windows/extname.ts
+Download https://jsr.io/@std/path/1.1.6/posix/format.ts
+Download https://jsr.io/@std/path/1.1.6/windows/format.ts
+Download https://jsr.io/@std/path/1.1.6/posix/from_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/windows/from_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/posix/is_absolute.ts
+Download https://jsr.io/@std/path/1.1.6/windows/is_absolute.ts
+Download https://jsr.io/@std/path/1.1.6/posix/join.ts
+Download https://jsr.io/@std/path/1.1.6/windows/join.ts
+Download https://jsr.io/@std/path/1.1.6/posix/normalize.ts
+Download https://jsr.io/@std/path/1.1.6/windows/normalize.ts
+Download https://jsr.io/@std/path/1.1.6/posix/parse.ts
+Download https://jsr.io/@std/path/1.1.6/windows/parse.ts
+Download https://jsr.io/@std/path/1.1.6/posix/relative.ts
+Download https://jsr.io/@std/path/1.1.6/windows/relative.ts
+Download https://jsr.io/@std/path/1.1.6/posix/resolve.ts
+Download https://jsr.io/@std/path/1.1.6/windows/resolve.ts
+Download https://jsr.io/@std/path/1.1.6/posix/to_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/windows/to_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/posix/to_namespaced_path.ts
+Download https://jsr.io/@std/path/1.1.6/windows/to_namespaced_path.ts
+Download https://jsr.io/@std/path/1.1.6/_common/common.ts
+Download https://jsr.io/@std/path/1.1.6/posix/glob_to_regexp.ts
+Download https://jsr.io/@std/path/1.1.6/windows/glob_to_regexp.ts
+Download https://jsr.io/@std/path/1.1.6/posix/join_globs.ts
+Download https://jsr.io/@std/path/1.1.6/windows/join_globs.ts
+Download https://jsr.io/@std/path/1.1.6/posix/normalize_glob.ts
+Download https://jsr.io/@std/path/1.1.6/windows/normalize_glob.ts
+Download https://jsr.io/@std/path/1.1.6/_common/basename.ts
+Download https://jsr.io/@std/path/1.1.6/_common/strip_trailing_separators.ts
+Download https://jsr.io/@std/path/1.1.6/posix/_util.ts
+Download https://jsr.io/@std/path/1.1.6/_common/constants.ts
+Download https://jsr.io/@std/path/1.1.6/windows/_util.ts
+Download https://jsr.io/@std/path/1.1.6/_common/dirname.ts
+Download https://jsr.io/@std/path/1.1.6/_common/assert_path.ts
+Download https://jsr.io/@std/path/1.1.6/_common/format.ts
+Download https://jsr.io/@std/path/1.1.6/_common/from_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/_common/normalize.ts
+Download https://jsr.io/@std/path/1.1.6/_common/normalize_string.ts
+Download https://jsr.io/@std/path/1.1.6/_common/relative.ts
+Download https://jsr.io/@std/path/1.1.6/_common/env.ts
+Download https://jsr.io/@std/path/1.1.6/_common/to_file_url.ts
+Download https://jsr.io/@std/path/1.1.6/_common/glob_to_reg_exp.ts
+Download https://jsr.io/@std/path/1.1.6/posix/constants.ts
+Download https://jsr.io/@std/path/1.1.6/windows/constants.ts
+Download https://jsr.io/@std/internal/1.0.14/os.ts
+Download https://jsr.io/@std/internal/1.0.14/_os.ts
+Download https://registry.npmjs.org/ms/-/ms-2.1.3.tgz
+error: Failed caching npm package 'ms@2.1.3'
+    0: Tarball checksum did not match what was provided by npm registry for ms@2.1.3.
+       
+       Expected: AAAAubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
+       Actual: 6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==
+
+Stack backtrace:
+   0: <unknown>

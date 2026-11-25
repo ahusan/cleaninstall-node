@@ -63,6 +63,17 @@ describe("every fixture is recognised as the right error", () => {
     ["deno-legacy-addon.txt", "deno-legacy-addon"],
     ["deno-elf.txt", "native-platform"],
     ["deno-min-age.txt", "deno-min-dependency-age"],
+    ["deno-not-a-dependency.txt", "deno-not-a-dependency"],
+    ["deno-jsr-version-not-found.txt", "deno-version-not-found"],
+    ["deno-npm-version-not-found.txt", "deno-version-not-found"],
+    ["deno-jsr-package-not-found.txt", "deno-jsr-not-found"],
+    ["deno-integrity-npm.txt", "deno-integrity"],
+    ["deno-integrity-jsr.txt", "deno-integrity"],
+    ["deno-lockfile-version.txt", "deno-lockfile-version"],
+    ["deno-permission-read.txt", "deno-permission"],
+    ["deno-permission-net.txt", "deno-permission"],
+    ["deno-config-invalid.txt", "deno-config-invalid"],
+    ["deno-workspace-missing.txt", "deno-workspace-missing"],
     // reconstructed
     ["known/err-require-esm.txt", "require-esm"],
     ["known/enospc-disk.txt", "disk-full"],
@@ -194,6 +205,39 @@ describe("Deno errors", () => {
     const [m] = explain(fixture("deno-min-age.txt"), "deno");
     expect(m.title).toContain("cleaninstall-node@3.2.0");
     expect(m.manual.join(" ")).toContain("--minimum-dependency-age=0");
+  });
+
+  test("bare import not in deno.json -> Deno's own deno add suggestion", () => {
+    const [m] = explain(fixture("deno-not-a-dependency.txt"), "deno");
+    expect(m.title).toBe('"lodash" isn\'t in deno.json\'s imports');
+    expect(m.manual[0]).toBe("Add it: deno add npm:lodash");
+  });
+
+  test("version not found names the registry; min-age wins over it", () => {
+    expect(explain(fixture("deno-jsr-version-not-found.txt"), "deno")[0].manual[0]).toContain("https://jsr.io/@std/path");
+    expect(explain(fixture("deno-npm-version-not-found.txt"), "deno")[0].manual[0]).toBe("Check the published versions: npm view ms versions");
+    expect(ids(explain(fixture("deno-min-age.txt"), "deno"))).toEqual(["deno-min-dependency-age"]);
+  });
+
+  test("integrity: re-download first, then fix the lockfile", () => {
+    for (const f of ["deno-integrity-npm.txt", "deno-integrity-jsr.txt"]) {
+      const [m] = explain(fixture(f), "deno");
+      expect(m.manual[0]).toContain("--reload");
+      expect(m.manual[1]).toContain("review the diff");
+    }
+    expect(explain(fixture("deno-integrity-npm.txt"), "deno")[0].title).toBe("ms@2.1.3 doesn't match the checksum in deno.lock");
+  });
+
+  test("permissions: the narrowest grant", () => {
+    expect(explain(fixture("deno-permission-read.txt"), "deno")[0].manual[0]).toBe("Grant just that: --allow-read=deno.json");
+    expect(explain(fixture("deno-permission-net.txt"), "deno")[0].manual[0]).toBe("Grant just that: --allow-net=example.com:443");
+  });
+
+  test("lockfile version, invalid config, missing workspace member", () => {
+    expect(explain(fixture("deno-lockfile-version.txt"), "deno")[0].manual[0]).toContain("deno upgrade");
+    expect(explain(fixture("deno-config-invalid.txt"), "deno")[0].explanation[0]).toContain("Unterminated object");
+    expect(explain(fixture("deno-workspace-missing.txt"), "deno")[0].title).toContain("./packages/missing");
+    expect(explain(fixture("deno-frozen-lockfile.txt"), "deno")[0].title).toBe("deno.lock doesn't match deno.json / package.json");
   });
 
   test("missing package in a Deno project -> deno add npm:", () => {

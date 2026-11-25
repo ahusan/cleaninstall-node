@@ -1,0 +1,7 @@
+error: Failed reading lockfile at '/home/dev/app/deno.lock'
+
+Caused by:
+    Unsupported lockfile version '99'. Try upgrading Deno or recreating the lockfile
+
+Stack backtrace:
+   0: <unknown>

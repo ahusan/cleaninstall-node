@@ -1,0 +1,7 @@
+error: Failed deserializing config file 'file:///home/dev/app/bad/deno.json'.
+
+Caused by:
+    Unterminated object on line 2 column 1
+
+Stack backtrace:
+   0: <unknown>
