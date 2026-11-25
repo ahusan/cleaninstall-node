@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-11-25
+
+### Added
+- **Deno support.** Deno projects (`deno.lock`, `deno.json`/`deno.jsonc`, or `package.json` installed with `deno install`) are detected and fixed with `deno install`. doctor checks `node_modules/.deno` against `deno.lock` (skipping other platforms' optional binaries), checks `npm:` imports in deno.json, reports install scripts Deno skipped (with the `--allow-scripts` command), loads native modules with Deno, and reports legacy (non-Node-API) addons as unsupported by Deno rather than suggesting a rebuild. Native rebuilds remove only that package's folder in `node_modules/.deno` and re-run `deno install --allow-scripts`. `deno.json`-only projects using Deno's global cache are explained instead of reported as "not installed". `--lockfiles` removes `deno.lock`. `--from-error` recognises Deno's frozen-lockfile, legacy-addon and minimum-dependency-age errors (and strips colour codes). The git hook reacts to deno.lock/deno.json changes; the agent guard blocks deleting deno.lock and runs under Deno on machines without Node.
+- The CLI runs under Deno (`deno run -A npm:cleaninstall-node …`).
+
+### Changed
+- **Fewer dependencies: 36 → 13 packages installed.** `execa` (and its ~20 dependencies) replaced with a small built-in runner using `child_process`. This also fixes the npm page's "Check bundle size" (Bundlephobia failed to build execa's `unicorn-magic` dependency) and loading the programmatic API on Node 20 before 20.19, which couldn't `require()` the ESM-only execa.
+- `commander` 11 → 14 (latest that supports Node 20), `js-yaml` 4 → 5.
+- The Claude Code guard is installed as `.claude/hooks/cleaninstall-guard.cjs` so Node and Deno both run it; the 3.2.0 `.js` copy and hook entry are migrated.
+
+### Fixed
+- Running under Deno, the native module check used Deno to imitate Node and misreported every addon as "failed to load". It now uses the real `node` (skipping Deno's `node` stand-in on PATH), or skips the check with a clear message when Node isn't installed.
+- Native modules installed only as transitive dependencies in Deno's `node_modules/.deno` store were not checked.
+
 ## [3.2.0] - 2026-11-25
 
 ### Added

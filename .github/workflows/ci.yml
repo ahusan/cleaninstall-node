@@ -19,6 +19,10 @@ jobs:
         node: [20, 22, 24]
     steps:
       - uses: actions/checkout@v4
+      # Deno for the real-Deno integration tests in tests/deno.test.js
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}

@@ -136,18 +136,18 @@ describe("agent install", () => {
     expect(res.changes).toEqual([
       { file: "AGENTS.md", action: "created" },
       { file: "CLAUDE.md", action: "created" },
-      { file: path.join(".claude", "hooks", "cleaninstall-guard.js"), action: "created" },
+      { file: path.join(".claude", "hooks", "cleaninstall-guard.cjs"), action: "created" },
       { file: path.join(".claude", "settings.json"), action: "created" },
     ]);
     expect(read("AGENTS.md")).toContain("npx cleaninstall-node doctor --from-error");
     // Claude Code ignores AGENTS.md when a CLAUDE.md exists, so CLAUDE.md imports it.
     expect(read("CLAUDE.md")).toContain("@AGENTS.md");
-    expect(read(".claude/hooks/cleaninstall-guard.js")).toBe(fs.readFileSync(GUARD, "utf8"));
+    expect(read(".claude/hooks/cleaninstall-guard.cjs")).toBe(fs.readFileSync(GUARD, "utf8"));
     const settings = JSON.parse(read(".claude/settings.json"));
     expect(settings.hooks.PreToolUse).toEqual([
       {
         matcher: "Bash",
-        hooks: [{ type: "command", command: 'node "${CLAUDE_PROJECT_DIR}/.claude/hooks/cleaninstall-guard.js"', timeout: 10 }],
+        hooks: [{ type: "command", command: 'node "${CLAUDE_PROJECT_DIR}/.claude/hooks/cleaninstall-guard.cjs"', timeout: 10 }],
       },
     ]);
   });
@@ -242,7 +242,7 @@ describe("agent uninstall", () => {
     expect(res.changes.map((c) => c.action)).toEqual(expect.arrayContaining(["deleted", "removed block", "removed hook"]));
     expect(fs.existsSync(file("AGENTS.md"))).toBe(false); // created by us, now empty
     expect(read("CLAUDE.md")).toBe("# Mine\n");
-    expect(fs.existsSync(file(".claude/hooks/cleaninstall-guard.js"))).toBe(false);
+    expect(fs.existsSync(file(".claude/hooks/cleaninstall-guard.cjs"))).toBe(false);
     expect(JSON.parse(read(".claude/settings.json"))).toEqual({
       hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "./other.sh" }] }] },
     });

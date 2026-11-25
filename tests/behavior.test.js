@@ -8,7 +8,7 @@ const mockQuestion = jest.fn();
 jest.mock("readline/promises", () => ({
   createInterface: jest.fn(() => ({ question: mockQuestion, close: jest.fn() })),
 }));
-jest.mock("execa", () => ({ execa: jest.fn() }));
+jest.mock("../lib/run", () => ({ run: jest.fn() }));
 
 const { cleanup } = require("../index");
 const { detectPackageManager } = require("../bin/cleanup.js");
@@ -37,7 +37,7 @@ beforeEach(() => {
   jest.spyOn(console, "warn").mockImplementation(() => {});
   jest.spyOn(console, "error").mockImplementation(() => {});
   mockQuestion.mockReset();
-  require("execa").execa.mockReset();
+  require("../lib/run").run.mockReset();
   process.exitCode = undefined;
 });
 
@@ -110,7 +110,7 @@ describe("package manager detection", () => {
   test("install uses the detected manager and survives lockfile removal", async () => {
     make(root, { "package.json": pkg(), "bun.lock": "", node_modules: {} });
     await cleanup({ dir: root, verbose: false, install: true, removeLockfiles: true });
-    expect(require("execa").execa).toHaveBeenCalledWith(
+    expect(require("../lib/run").run).toHaveBeenCalledWith(
       "bun",
       ["install"],
       expect.objectContaining({ cwd: root })
@@ -123,7 +123,7 @@ describe("package manager detection", () => {
       node_modules: {},
     });
     await cleanup({ dir: root, verbose: false, install: true });
-    expect(require("execa").execa).toHaveBeenCalledWith(
+    expect(require("../lib/run").run).toHaveBeenCalledWith(
       "npm",
       ["ci", "--no-audit"],
       expect.objectContaining({ cwd: root })

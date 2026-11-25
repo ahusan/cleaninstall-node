@@ -6,7 +6,7 @@ const path = require("path");
 
 const mockRlInterface = { question: jest.fn(), close: jest.fn() };
 jest.mock("readline/promises", () => ({ createInterface: jest.fn() }));
-jest.mock("execa", () => ({ execa: jest.fn() }));
+jest.mock("../lib/run", () => ({ run: jest.fn() }));
 
 const { cleanup } = require("../index");
 
@@ -35,7 +35,7 @@ beforeEach(() => {
   mockRlInterface.question.mockReset();
   mockRlInterface.close.mockReset();
   require("readline/promises").createInterface.mockImplementation(() => mockRlInterface);
-  require("execa").execa.mockReset();
+  require("../lib/run").run.mockReset();
   process.exitCode = undefined;
 });
 
@@ -103,7 +103,7 @@ describe("cleanup function", () => {
       if (lockFile) tree[lockFile] = "lock";
       make(root, tree);
     };
-    const execa = () => require("execa").execa;
+    const execa = () => require("../lib/run").run;
 
     test.each([
       ["pnpm-lock.yaml", "pnpm"],

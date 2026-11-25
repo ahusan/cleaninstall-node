@@ -1,8 +1,9 @@
 {
   "name": "cleaninstall-node",
-  "version": "3.2.0",
-  "description": "Stop deleting node_modules blindly: diagnose broken installs, apply the smallest fix, get warned after git pull, and clean safely across monorepos.",
+  "version": "3.3.0",
+  "description": "Stop deleting node_modules blindly: diagnose broken installs, apply the smallest fix, get warned after git pull, and clean safely across monorepos. npm, pnpm, yarn, bun and Deno.",
   "main": "index.js",
+  "type": "commonjs",
   "bin": {
     "cleaninstall-node": "bin/cleanup.js"
   },
@@ -24,6 +25,7 @@
     "nx",
     "pnpm",
     "bun",
+    "deno",
     "yarn",
     "npm",
     "lockfile",
@@ -62,10 +64,9 @@
   },
   "homepage": "https://cleaninstall-node.ahusan.dev/",
   "dependencies": {
-    "commander": "^11.1.0",
-    "execa": "^9.5.2",
+    "commander": "^14.0.3",
     "glob": "^14.0.6",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^5.5.0",
     "semver": "^7.8.6"
   },
   "devDependencies": {
