@@ -51,7 +51,7 @@
   "bugs": {
     "url": "https://github.com/ahusan/cleaninstall-node/issues"
   },
-  "homepage": "https://ahusan.github.io/cleaninstall-node/",
+  "homepage": "https://cleaninstall-node.ahusan.dev/",
   "dependencies": {
     "commander": "^11.1.0",
     "execa": "^9.5.2",
