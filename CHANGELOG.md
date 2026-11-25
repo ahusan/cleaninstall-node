@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.4.1] - 2026-11-25
 
 ### Added
-- **Ready for the official [MCP Registry](https://registry.modelcontextprotocol.io)** as `io.github.ahusan/cleaninstall-node`: the package now has the `mcpName` field the registry uses to verify ownership, plus a `server.json` describing how to start the server (`npx cleaninstall-node mcp`).
+- **Ready for the official [MCP Registry](https://registry.modelcontextprotocol.io)** as `io.github.ahusan/cleaninstall-node`: the package now has the `mcpName` field the registry uses to verify ownership, plus a `server.json` describing how to start the server (`npx cleaninstall-node mcp`). Each release now publishes to the registry automatically after npm (GitHub OIDC login, no secret needed).
 
 ## [3.4.0] - 2026-11-25
 
