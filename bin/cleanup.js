@@ -566,6 +566,7 @@ program
   .option("--fix", "apply the suggested fix (rebuild, install, or clean reinstall)")
   .option("--json", "print the report as JSON")
   .option("--no-native", "skip loading native modules")
+  .option("--from-error [text]", "explain an error message in the context of this project (pass the text, or pipe it in)")
   .action(async (options) => {
     try {
       const { execa } = await import("execa");
@@ -574,6 +575,14 @@ program
       console.error("\n❌ doctor failed:", error && error.message ? error.message : error);
       process.exit(1);
     }
+  });
+
+program
+  .command("mcp")
+  .description("run as an MCP server over stdio, for AI agents (Claude Code, Cursor, VS Code, ...)")
+  .option("-d, --dir <directory>", "default project directory for tools (defaults to current directory)")
+  .action((options) => {
+    require("../lib/mcp").startStdioServer({ cwd: options.dir ? path.resolve(options.dir) : process.cwd() });
   });
 
 const hookCmd = program

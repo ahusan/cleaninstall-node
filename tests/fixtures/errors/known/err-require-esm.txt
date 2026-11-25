@@ -1,0 +1,9 @@
+/home/dev/app/index.js:1
+const chalk = require('chalk');
+              ^
+
+Error [ERR_REQUIRE_ESM]: require() of ES Module /home/dev/app/node_modules/chalk/source/index.js from /home/dev/app/index.js not supported.
+Instead change the require of index.js in /home/dev/app/index.js to a dynamic import() which is available in all CommonJS modules.
+    at Object.<anonymous> (/home/dev/app/index.js:1:15) {
+  code: 'ERR_REQUIRE_ESM'
+}

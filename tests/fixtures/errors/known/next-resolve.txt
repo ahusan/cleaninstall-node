@@ -1,0 +1,2 @@
+./src/app/page.tsx:2:1
+Module not found: Can't resolve '@tanstack/react-query'

@@ -1,0 +1,8 @@
+npm error code EACCES
+npm error syscall mkdir
+npm error path /home/dev/app/node_modules/.bin
+npm error errno -13
+npm error Error: EACCES: permission denied, mkdir '/home/dev/app/node_modules/.bin'
+npm error  [Error: EACCES: permission denied, mkdir '/home/dev/app/node_modules/.bin'] {
+npm error   errno: -13,
+npm error   code: 'EACCES',

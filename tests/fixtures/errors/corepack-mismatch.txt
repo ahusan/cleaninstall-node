@@ -1,0 +1,1 @@
+This project is configured to use yarn because /home/dev/app/package.json has a "packageManager" field

@@ -11,8 +11,15 @@
 
 ```bash
 npx cleaninstall-node doctor         # what's wrong? (and --fix to repair it)
+npm run dev 2>&1 | npx cleaninstall-node doctor --from-error   # explain this error
 npx cleaninstall-node hook install   # warn after pull/checkout/rebase
 npx cleaninstall-node --install      # clean + reinstall, safely
+```
+
+**Using an AI coding agent?** Give it the [MCP server](#use-it-from-ai-agents-mcp) so it diagnoses broken installs instead of running `rm -rf node_modules package-lock.json`:
+
+```bash
+claude mcp add cleaninstall -- npx -y cleaninstall-node mcp
 ```
 
 > **Upgrading from 2.x?** Lockfiles are now kept unless you pass `--lockfiles`, the CLI asks once before deleting (use `-y` in scripts), and Node.js 20+ is required. See the [changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md#300---2026-11-25).
@@ -24,6 +31,8 @@ npx cleaninstall-node --install      # clean + reinstall, safely
 - **Glob Pattern Support:** Use glob patterns (e.g., `*.log`, `dist-*`) in configuration for flexible matching.
 - **Dry Run Mode:** See what would be deleted without actually removing anything.
 - **`doctor`:** Diagnoses *why* an install is broken (stale lockfile, wrong Node, native ABI mismatch, mixed package managers) and applies the smallest fix.
+- **`doctor --from-error`:** Paste or pipe an error; get what it means for *this* project and the fix.
+- **MCP server for AI agents:** Claude Code, Cursor, VS Code and others can diagnose and fix installs through structured tools.
 - **Git hook:** Warns (or reinstalls) right after a pull, branch switch or rebase changes your dependencies.
 - **Safe by default:** Shows what will be removed and asks once before deleting (skip with `-y`). Lockfiles are kept unless you pass `--lockfiles`.
 - **Interactive Mode:** Confirm each deletion individually.
@@ -96,6 +105,99 @@ Smallest fix (run with --fix to apply):
 | yarn system | yarn v1 installed under a different Node ABI or platform | `install` |
 
 Native addons are loaded in a separate short-lived process, so a crashing addon can't take `doctor` down. Skip that check with `--no-native`.
+
+### Paste the error: `--from-error`
+
+Start from the error you actually got. `doctor --from-error` explains what it means **for this project** and folds it into the fix plan:
+
+```bash
+npm run dev 2>&1 | npx cleaninstall-node doctor --from-error     # pipe it in
+npx cleaninstall-node doctor --from-error "Cannot find module 'axios'"
+npx cleaninstall-node doctor --from-error --fix                   # and fix it
+```
+
+```
+🩺 cleaninstall-node doctor --from-error — ~/code/app (npm)
+
+What the error means
+  ✖ axios is in package.json but not installed
+      axios (^1.7.0) is declared, but node_modules doesn't have it: the install is missing or out of date.
+
+In this project
+  ✖ 2 dependencies are not installed   ← likely related
+  ✔ 1 other check passed
+
+Smallest fix (run with --fix to apply):
+  → npm install
+```
+
+The same error can need different fixes. `Cannot find module 'x'` gets a different answer when `x` is declared but not installed (install it), only present through another package (add it to package.json), installed at the wrong version, a relative import (a code problem, so no reinstall), or a Node built-in. Recognised errors:
+
+| Error | Example | What it suggests |
+| --- | --- | --- |
+| Native module, wrong Node | `NODE_MODULE_VERSION 115 … requires 127` | Rebuild that one package |
+| Native module, wrong OS/CPU | `invalid ELF header` | Rebuild that package, and stop sharing node_modules with Docker |
+| Platform binary missing | rollup, esbuild, sharp, swc `…-linux-x64` | Clean reinstall |
+| Module not found | Node CJS/ESM, Vite, webpack, Next.js, `TS2307` | Depends on the project (see above) |
+| Command not found | `sh: vite: not found`, `'tsc' is not recognized` | Install, `npx`, or which package to add |
+| ESM-only package | `ERR_REQUIRE_ESM` | Newer Node, `import()`, or pin the old major |
+| Subpath not exported | `ERR_PACKAGE_PATH_NOT_EXPORTED` | Check the installed major |
+| Lockfile out of sync | `npm ci`, `ERR_PNPM_OUTDATED_LOCKFILE`, yarn `--frozen-lockfile` | Install locally and commit the lockfile |
+| Peer conflict | `ERESOLVE` | Align versions (`--legacy-peer-deps` only as a last resort) |
+| Wrong Node for a dependency | `EBADENGINE`, yarn/pnpm engine errors | Switch Node (blocks `--fix`) |
+| Wrong package manager | Corepack mismatch, npm on `workspace:` | Use the declared package manager |
+| Broken install | `ENOTEMPTY`, interrupted installs | Clean reinstall |
+| Other | `EINTEGRITY`, `EACCES`, disk full vs. file-watcher `ENOSPC`, `gyp ERR!` | Specific steps |
+
+With `--json`, the report includes `error.matches` for agents and scripts. An error it doesn't recognise still gets the normal doctor checks.
+
+## Use it from AI agents (MCP)
+
+When an install breaks, AI coding agents tend to run `rm -rf node_modules package-lock.json && npm install`. That throws away the lockfile, quietly upgrades dependencies, and often doesn't fix the real cause. `cleaninstall-node mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives the agent the diagnosis and the smallest fix instead.
+
+| Tool | What it does | Changes files |
+| --- | --- | --- |
+| `explain_error` | Explains an error message for this project (everything `--from-error` knows) and returns a fix plan | No |
+| `diagnose` | Full `doctor` health check and fix plan | No |
+| `apply_fix` | Runs the plan: targeted rebuild, install, or (rarely) a clean reinstall. Never touches lockfiles | Yes |
+| `plan_clean` | Lists what a cleanup would delete, with sizes | No |
+| `clean` | Deletes exactly what `plan_clean` listed; can reinstall | Yes |
+
+**Built-in safety:**
+- **Plans must be shown first.** `apply_fix` and `clean` only run with the `plan_id` from a preceding read-only call. If the project changed in between, they refuse and the agent has to re-plan, so it can't delete or install something nobody was shown.
+- **Hard limits.** The tools refuse to run on `/`, your home folder, or a folder without a `package.json`. Lockfiles are only removed when asked, and fixes are blocked while you're on the wrong Node version.
+- **Guidance for the agent.** The server's instructions tell it to call `explain_error` before deleting `node_modules`.
+- **No extra install weight.** The server adds no runtime dependencies.
+
+### Setup
+
+**Claude Code** (add `--scope project` to share it with your team via `.mcp.json`):
+
+```bash
+claude mcp add cleaninstall -- npx -y cleaninstall-node mcp
+```
+
+**Cursor** (`.cursor/mcp.json`), **Windsurf**, **Claude Desktop** (`claude_desktop_config.json`) and other clients using the `mcpServers` format:
+
+```json
+{
+  "mcpServers": {
+    "cleaninstall": { "command": "npx", "args": ["-y", "cleaninstall-node", "mcp"] }
+  }
+}
+```
+
+**VS Code** (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "cleaninstall": { "type": "stdio", "command": "npx", "args": ["-y", "cleaninstall-node", "mcp"] }
+  }
+}
+```
+
+Tools default to the folder the client starts the server in, which is normally your project. Every tool also takes a `dir` argument, and `mcp --dir <path>` changes the default; use one of these with clients that don't start in a project, such as Claude Desktop. On Windows, if a client can't find `npx`, use `"command": "cmd", "args": ["/c", "npx", "-y", "cleaninstall-node", "mcp"]`.
 
 ## Git hook: know when to reinstall
 

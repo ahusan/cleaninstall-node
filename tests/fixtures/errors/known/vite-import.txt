@@ -1,0 +1,2 @@
+[plugin:vite:import-analysis] Failed to resolve import "axios" from "src/App.tsx". Does the file exist?
+/home/dev/app/src/App.tsx:2:18

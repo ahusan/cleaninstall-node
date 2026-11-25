@@ -1,0 +1,2 @@
+npm error code EINTEGRITY
+npm error sha512-AAAA== integrity checksum failed when using sha512: wanted sha512-AAAA== but got sha512-BBBB==. (12345 bytes)
