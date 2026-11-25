@@ -19,7 +19,9 @@ describe('server.json (MCP Registry listing)', () => {
   test('describes the npm package and how to start the server', () => {
     const p = server.packages[0];
     expect(p.registryType).toBe('npm');
-    expect(p.identifier).toBe(pkg.name);
+    // Not pkg.name: the GitHub Packages job renames the package to
+    // @ahusan/cleaninstall-node before publishing, which runs these tests.
+    expect(p.identifier).toBe('cleaninstall-node');
     expect(p.transport).toEqual({ type: 'stdio' });
     expect(p.packageArguments).toEqual([{ type: 'positional', value: 'mcp' }]);
   });
