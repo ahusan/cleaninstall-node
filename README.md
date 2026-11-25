@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/ahusan/cleaninstall-node/actions/workflows/ci.yml/badge.svg)](https://github.com/ahusan/cleaninstall-node/actions/workflows/ci.yml)
 
-**Stop deleting `node_modules` blindly.** `cleaninstall-node` finds out *why* an install is broken and applies the smallest fix, warns you right after a `git pull` changes your dependencies, and cleans safely when you really do want a fresh start. Works with npm, pnpm, yarn and bun, in single projects and monorepos.
+**Stop deleting `node_modules` blindly.** `cleaninstall-node` finds out *why* an install is broken and applies the smallest fix, warns you right after a `git pull` changes your dependencies, and cleans safely when you really do want a fresh start. Works with npm, pnpm, yarn, bun and Deno, in single projects and monorepos.
 
 **[Website](https://cleaninstall-node.ahusan.dev/)** · [npm](https://www.npmjs.com/package/cleaninstall-node) · [Changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md)
 
@@ -258,6 +258,29 @@ To give every teammate the hook without husky, add it to `prepare` (this needs `
 ```json
 { "scripts": { "prepare": "cleaninstall-node hook install" } }
 ```
+
+## Deno
+
+**Run it with Deno:**
+
+```bash
+deno run -A npm:cleaninstall-node doctor
+deno install -g -A --name cleaninstall-node npm:cleaninstall-node   # global
+```
+
+Deno 2.9+ won't install npm versions published in the last 24 hours. If you need a release from today, add `--minimum-dependency-age=0`.
+
+**Deno projects** (`deno.lock`, `deno.json`/`deno.jsonc`, or a `package.json` installed with `deno install`) are recognised, and fixes use `deno install`:
+
+- **Lockfile:** checks `node_modules` against `deno.lock`, e.g. after a `git pull` (Deno stores packages in `node_modules/.deno`). Optional binaries for other platforms are skipped.
+- **`deno.json` imports:** `npm:` imports are checked against what's installed.
+- **Install scripts:** says which packages Deno didn't run install scripts for, with the exact `deno install --allow-scripts=npm:…` command.
+- **Native modules:** loaded with Deno, so you get Deno's verdict. Addons built with the legacy (non-Node-API) API are reported as unsupported by Deno, which a rebuild won't fix. A native module built for another OS or CPU is rebuilt the Deno way: only that package's folder in `node_modules/.deno` is removed, then `deno install --allow-scripts=…` runs.
+- **Global cache:** `deno.json`-only projects without `nodeModulesDir` keep npm packages in Deno's global cache, and doctor says there's nothing to check instead of reporting "not installed".
+- **Cleanup:** `--lockfiles` also removes `deno.lock`; `--install` runs `deno install`.
+- **`--from-error`:** recognises Deno's frozen-lockfile error, its legacy-addon error and its minimum-dependency-age error.
+- **Git hook:** reacts to changes in `deno.lock` and `deno.json`.
+- **Agent guard:** blocks deleting `deno.lock`. On machines with Deno but no Node, the hook runs the guard with Deno.
 
 ## Installation
 

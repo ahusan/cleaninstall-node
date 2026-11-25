@@ -292,7 +292,7 @@
 <main>
 <section class="hero">
   <div class="wrap">
-    <div class="eyebrow">CLI for npm · pnpm · yarn · bun</div>
+    <div class="eyebrow">CLI for npm · pnpm · yarn · bun · deno</div>
     <h1>Stop deleting <code style="font-size:.85em;border:0;background:none;padding:0">node_modules</code>. <em>Find out why it broke.</em></h1>
     <p class="lede">
       <b>cleaninstall-node</b> diagnoses broken installs and applies the smallest fix that works,
@@ -309,7 +309,7 @@
         Source
       </a>
     </div>
-    <div class="pms"><span>Works with</span><span class="pill">npm</span><span class="pill">pnpm</span><span class="pill">yarn</span><span class="pill">bun</span><span class="pill">workspaces</span><span class="pill">husky</span></div>
+    <div class="pms"><span>Works with</span><span class="pill">npm</span><span class="pill">pnpm</span><span class="pill">yarn</span><span class="pill">bun</span><span class="pill">deno</span><span class="pill">workspaces</span><span class="pill">husky</span></div>
   </div>
 </section>
 
@@ -585,6 +585,7 @@ Smallest fix (run with --fix to apply):
           <button role="tab" aria-selected="false" data-pm="pnpm">pnpm</button>
           <button role="tab" aria-selected="false" data-pm="yarn">yarn</button>
           <button role="tab" aria-selected="false" data-pm="bun">bun</button>
+          <button role="tab" aria-selected="false" data-pm="deno">deno</button>
         </div>
         <div class="install-row">
           <label>Try it, no install</label>
@@ -701,7 +702,8 @@ Smallest fix (run with --fix to apply):
     npm:  { run: "npx cleaninstall-node doctor",       dev: "npm install -D cleaninstall-node", global: "npm install -g cleaninstall-node" },
     pnpm: { run: "pnpm dlx cleaninstall-node doctor",  dev: "pnpm add -D cleaninstall-node",    global: "pnpm add -g cleaninstall-node" },
     yarn: { run: "npx cleaninstall-node doctor",        dev: "yarn add -D cleaninstall-node",    global: "npm install -g cleaninstall-node" },
-    bun:  { run: "bunx cleaninstall-node doctor",      dev: "bun add -d cleaninstall-node",     global: "bun add -g cleaninstall-node" }
+    bun:  { run: "bunx cleaninstall-node doctor",      dev: "bun add -d cleaninstall-node",     global: "bun add -g cleaninstall-node" },
+    deno: { run: "deno run -A npm:cleaninstall-node doctor", dev: "deno add -D npm:cleaninstall-node", global: "deno install -g -A --name cleaninstall-node npm:cleaninstall-node" }
   };
   var pmTabs = document.querySelectorAll("[data-pm]");
   function setPm(pm) {

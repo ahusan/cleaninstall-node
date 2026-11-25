@@ -551,8 +551,7 @@ program
   .option("--install", "run the package manager's install after cleanup", false)
   .action(async (options) => {
     try {
-      const { execa } = await import("execa");
-      await main(options, execa);
+      await main(options, require("../lib/run").run);
     } catch (error) {
       console.error("\n❌ An unexpected error occurred:", error && error.message ? error.message : error);
       process.exit(1);
@@ -569,8 +568,7 @@ program
   .option("--from-error [text]", "explain an error message in the context of this project (pass the text, or pipe it in)")
   .action(async (options) => {
     try {
-      const { execa } = await import("execa");
-      await require("../lib/doctor").runDoctor(options, execa);
+      await require("../lib/doctor").runDoctor(options, require("../lib/run").run);
     } catch (error) {
       console.error("\n❌ doctor failed:", error && error.message ? error.message : error);
       process.exit(1);
@@ -692,8 +690,7 @@ hookCmd
   .action(async (event, args, options) => {
     // A hook must never break the git command that triggered it.
     try {
-      const { execa } = await import("execa");
-      await require("../lib/hook").runHook(event, args || [], { mode: options.mode, execa });
+      await require("../lib/hook").runHook(event, args || [], { mode: options.mode, execa: require("../lib/run").run });
     } catch {
       // swallow
     }

@@ -59,6 +59,10 @@ describe("every fixture is recognised as the right error", () => {
     ["rollup-missing-native.txt", "platform-binary-missing"],
     ["esbuild-missing-native.txt", "platform-binary-missing"],
     ["sharp-missing-native.txt", "platform-binary-missing"],
+    ["deno-frozen-lockfile.txt", "lockfile-out-of-sync"],
+    ["deno-legacy-addon.txt", "deno-legacy-addon"],
+    ["deno-elf.txt", "native-platform"],
+    ["deno-min-age.txt", "deno-min-dependency-age"],
     // reconstructed
     ["known/err-require-esm.txt", "require-esm"],
     ["known/enospc-disk.txt", "disk-full"],
@@ -170,6 +174,30 @@ describe("details are extracted from real output", () => {
     expect(packageFromPath("/a/node_modules/.pnpm/x@1/node_modules/@scope/pkg/build/a.node")).toBe("@scope/pkg");
     expect(packageFromPath("C:\\app\\node_modules\\sqlite3\\lib\\binding\\x.node")).toBe("sqlite3");
     expect(packageFromPath("/no/modules/here.js")).toBeNull();
+  });
+});
+
+describe("Deno errors", () => {
+  test("colour codes in Deno output don't break matching", () => {
+    expect(fixture("deno-legacy-addon.txt")).toContain("\x1b[");
+    const [m] = explain(fixture("deno-legacy-addon.txt"), "deno");
+    expect(m.title).toBe("old-native uses the legacy addon API, which Deno can't load");
+    expect(m.fix).toBeUndefined(); // rebuilding can't fix this
+    expect(m.manual.join(" ")).toContain("Node-API");
+  });
+
+  test("frozen deno.lock out of date -> deno install --frozen=false", () => {
+    expect(explain(fixture("deno-frozen-lockfile.txt"), "deno")[0].manual[0]).toContain("deno install --frozen=false");
+  });
+
+  test("minimum dependency age names the held-back version and the override", () => {
+    const [m] = explain(fixture("deno-min-age.txt"), "deno");
+    expect(m.title).toContain("cleaninstall-node@3.2.0");
+    expect(m.manual.join(" ")).toContain("--minimum-dependency-age=0");
+  });
+
+  test("missing package in a Deno project -> deno add npm:", () => {
+    expect(explain(fixture("known/webpack-resolve.txt"), "deno")[0].manual).toEqual(["Add it: deno add npm:axios"]);
   });
 });
 

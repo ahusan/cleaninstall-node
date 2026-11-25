@@ -1,4 +1,4 @@
-const { execa } = require("execa");
+const { run } = require("./lib/run");
 const { main, DEFAULT_CONFIG, LOCKFILES } = require("./bin/cleanup.js");
 
 /**
@@ -25,7 +25,7 @@ const { main, DEFAULT_CONFIG, LOCKFILES } = require("./bin/cleanup.js");
  *   totalFiles: number, itemsDeleted: number, installed: boolean}>}
  */
 async function cleanup(options = {}) {
-  return main({ yes: true, ...options }, execa);
+  return main({ yes: true, ...options }, run);
 }
 
 module.exports = {
