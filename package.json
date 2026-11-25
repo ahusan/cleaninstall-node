@@ -1,7 +1,8 @@
 {
   "name": "cleaninstall-node",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "description": "Stop deleting node_modules blindly: diagnose broken installs, apply the smallest fix, get warned after git pull, and clean safely across monorepos. npm, pnpm, yarn, bun and Deno.",
+  "mcpName": "io.github.ahusan/cleaninstall-node",
   "main": "index.js",
   "type": "commonjs",
   "bin": {

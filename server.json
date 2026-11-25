@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.ahusan/cleaninstall-node",
+  "title": "cleaninstall-node",
+  "description": "Diagnose and fix broken Node.js/Deno installs instead of rm -rf node_modules and the lockfile",
+  "websiteUrl": "https://cleaninstall-node.ahusan.dev/",
+  "repository": {
+    "url": "https://github.com/ahusan/cleaninstall-node",
+    "source": "github"
+  },
+  "version": "3.4.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "cleaninstall-node",
+      "version": "3.4.1",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "packageArguments": [{ "type": "positional", "value": "mcp" }]
+    }
+  ]
+}
