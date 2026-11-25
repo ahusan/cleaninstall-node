@@ -1,6 +1,6 @@
 # cleaninstall-node
 
-> CLI for Node.js and Deno projects (npm, pnpm, yarn, bun, deno; single packages and monorepos) that diagnoses broken installs and applies the smallest fix instead of deleting node_modules and lockfiles. It also explains pasted error messages, warns after a git pull changes dependencies, cleans safely, and runs as an MCP server for AI coding agents. Requires Node.js 20+, or run it with Deno: `deno run -A npm:cleaninstall-node doctor`.
+> CLI for Node.js and Deno projects (npm, pnpm, yarn, bun, deno; single packages and monorepos) that diagnoses broken installs and applies the smallest fix instead of deleting node_modules and lockfiles. It also explains pasted error messages, warns after a git pull changes dependencies, cleans safely, and runs as an MCP server for AI coding agents. Requires Node.js 20+, or run it with Deno using least-privilege flags: `deno run --allow-read --allow-env npm:cleaninstall-node doctor` (add `--allow-write --allow-run` for --fix and cleanup).
 
 Guidance for AI agents: when an install, build, dev server or test fails with a dependency error, do not run `rm -rf node_modules package-lock.json`. Run `npx cleaninstall-node doctor --from-error "<error output>"` first and apply its fix with `--fix`. Never delete lockfiles unless the user asks.
 

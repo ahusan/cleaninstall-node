@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2026-11-25
+
+### Fixed
+- **Cleanup exits with code 1 when something couldn't be deleted.** It previously printed "completed successfully" and exited 0, so scripts and CI treated a partial cleanup as success. It now lists what failed, explains why (permission denied, files in use on Windows, or Deno lacking `--allow-write`), skips `--install` on top of a half-cleaned project, and adds an `errors` array (path, code, message) to the programmatic result.
+- Under Deno without `--allow-run`, the native-module check reported every addon as "failed to load" (Deno's `spawnSync` returns an empty result when refused). It's now reported as skipped, with the permission it needs.
+- `hook install` errors now say what's wrong: "isn't inside a git repository", "git isn't installed", or under Deno "Deno needs --allow-run=git", instead of "Command failed: git rev-parse".
+- The MCP server's home-directory guard used `os.homedir()`, which needs `--allow-sys` under Deno, so every MCP tool failed with Deno's default permissions. It now falls back to `HOME`/`USERPROFILE` (covered by `--allow-env`); the guard still refuses the home directory.
+
+### Changed
+- Deno docs, the website and llms.txt show least-privilege permissions instead of `-A`: `--allow-read --allow-env` for diagnosis, `--allow-write` and `--allow-run` (optionally `--allow-run=node,deno,npm,pnpm,yarn,bun,git`) for fixes, cleanup and installs. Each set was verified against Deno 2.9.
+
 ## [3.3.0] - 2026-11-25
 
 ### Added

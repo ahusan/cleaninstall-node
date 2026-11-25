@@ -200,6 +200,15 @@ describe("runHook", () => {
 });
 
 describe("installing hooks", () => {
+  test("outside a git repository: a clear error", () => {
+    const notRepo = fs.mkdtempSync(path.join(os.tmpdir(), "cin-norepo2-"));
+    try {
+      expect(() => installHooks({ dir: notRepo })).toThrow(/isn't inside a git repository/);
+    } finally {
+      fs.rmSync(notRepo, { recursive: true, force: true });
+    }
+  });
+
   const hooksDir = () => path.join(root, ".git", "hooks");
 
   test("creates executable post-checkout/post-merge/post-rewrite and is idempotent", () => {

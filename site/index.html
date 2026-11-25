@@ -703,7 +703,7 @@ Smallest fix (run with --fix to apply):
     pnpm: { run: "pnpm dlx cleaninstall-node doctor",  dev: "pnpm add -D cleaninstall-node",    global: "pnpm add -g cleaninstall-node" },
     yarn: { run: "npx cleaninstall-node doctor",        dev: "yarn add -D cleaninstall-node",    global: "npm install -g cleaninstall-node" },
     bun:  { run: "bunx cleaninstall-node doctor",      dev: "bun add -d cleaninstall-node",     global: "bun add -g cleaninstall-node" },
-    deno: { run: "deno run -A npm:cleaninstall-node doctor", dev: "deno add -D npm:cleaninstall-node", global: "deno install -g -A --name cleaninstall-node npm:cleaninstall-node" }
+    deno: { run: "deno run --allow-read --allow-env npm:cleaninstall-node doctor", dev: "deno add -D npm:cleaninstall-node", global: "deno install -g --allow-read --allow-env --allow-write --allow-run=node,deno,npm,pnpm,yarn,bun,git --name cleaninstall-node npm:cleaninstall-node" }
   };
   var pmTabs = document.querySelectorAll("[data-pm]");
   function setPm(pm) {
