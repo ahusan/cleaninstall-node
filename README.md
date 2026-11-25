@@ -7,7 +7,7 @@
 
 **Stop deleting `node_modules` blindly.** `cleaninstall-node` finds out *why* an install is broken and applies the smallest fix, warns you right after a `git pull` changes your dependencies, and cleans safely when you really do want a fresh start. Works with npm, pnpm, yarn and bun, in single projects and monorepos.
 
-**[Website](https://ahusan.github.io/cleaninstall-node/)** · [npm](https://www.npmjs.com/package/cleaninstall-node) · [Changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md)
+**[Website](https://cleaninstall-node.ahusan.dev/)** · [npm](https://www.npmjs.com/package/cleaninstall-node) · [Changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md)
 
 ```bash
 npx cleaninstall-node doctor         # what's wrong? (and --fix to repair it)
