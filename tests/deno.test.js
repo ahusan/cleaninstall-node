@@ -97,7 +97,8 @@ describe("node_modules vs deno.lock", () => {
     project(
       {
         "ms@2.1.3": { integrity: "x" },
-        "@esbuild/darwin-arm64@0.24.0": { integrity: "x", os: ["darwin"], cpu: ["arm64"] },
+        // A platform no CI runner uses (darwin-arm64 IS the macOS runners).
+        "@esbuild/aix-ppc64@0.24.0": { integrity: "x", os: ["aix"], cpu: ["ppc64"] },
         "@types/ms@0.7.34": { integrity: "x" },
       },
       { ...denoPkg("ms", "2.1.3"), ...denoPkg("@types/ms", "0.7.34") }
