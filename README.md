@@ -157,6 +157,8 @@ With `--json`, the report includes `error.matches` for agents and scripts. An er
 
 When an install breaks, AI coding agents tend to run `rm -rf node_modules package-lock.json && npm install`. That throws away the lockfile, quietly upgrades dependencies, and often doesn't fix the real cause. `cleaninstall-node mcp` is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives the agent the diagnosis and the smallest fix instead.
 
+It's listed on the official [MCP Registry](https://registry.modelcontextprotocol.io) as `io.github.ahusan/cleaninstall-node`.
+
 | Tool | What it does | Changes files |
 | --- | --- | --- |
 | `explain_error` | Explains an error message for this project (everything `--from-error` knows) and returns a fix plan | No |
