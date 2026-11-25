@@ -585,6 +585,69 @@ program
     require("../lib/mcp").startStdioServer({ cwd: options.dir ? path.resolve(options.dir) : process.cwd() });
   });
 
+const agentCmd = program
+  .command("agent")
+  .description("set up AI coding agents to diagnose broken installs instead of deleting node_modules");
+
+agentCmd
+  .command("install")
+  .description("add guidance to AGENTS.md/CLAUDE.md and a Claude Code hook that blocks deleting node_modules/lockfiles")
+  .option("-d, --dir <directory>", "project root (defaults to current directory)")
+  .option("--no-hook", "only write the instruction files, not the Claude Code hook")
+  .option("--ask", "make the hook ask you instead of blocking")
+  .option("--dry-run", "show what would be written")
+  .action((options) => {
+    try {
+      const res = require("../lib/agent").installAgent({
+        dir: options.dir,
+        hook: options.hook,
+        mode: options.ask ? "ask" : "deny",
+        dryRun: options.dryRun,
+      });
+      console.log(`${options.dryRun ? "Would set up" : "✅ Set up"} AI agent guidance in ${res.dir}`);
+      for (const c of res.changes) console.log(`   ${c.action.padEnd(12)} ${c.file}`);
+      if (res.hook) {
+        console.log(
+          `\nThe Claude Code hook ${res.mode === "ask" ? "asks you before" : "blocks"} Bash commands that delete node_modules or lockfiles, and tells the agent to run \`cleaninstall-node doctor --from-error\` instead.`
+        );
+        console.log("Commit these files so your whole team (and their agents) get them. Disable for a session with CLEANINSTALL_GUARD=off.");
+      }
+    } catch (error) {
+      console.error(`❌ ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+agentCmd
+  .command("uninstall")
+  .description("remove cleaninstall-node's agent guidance and hook (other content is kept)")
+  .option("-d, --dir <directory>", "project root (defaults to current directory)")
+  .action((options) => {
+    try {
+      const res = require("../lib/agent").uninstallAgent({ dir: options.dir });
+      if (!res.changes.length) console.log("Nothing to remove.");
+      for (const c of res.changes) console.log(`   ${c.action.padEnd(14)} ${c.file}`);
+    } catch (error) {
+      console.error(`❌ ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+agentCmd
+  .command("check <command...>")
+  .description("test whether the guard would block a shell command (exit 1 if blocked)")
+  .allowUnknownOption()
+  .helpOption(false)
+  .action((parts) => {
+    const res = require("../lib/agent-guard").checkCommand(parts.join(" "));
+    if (res.blocked) {
+      console.log(res.reason);
+      process.exitCode = 1;
+    } else {
+      console.log("allowed");
+    }
+  });
+
 const hookCmd = program
   .command("hook")
   .description("git hooks that warn (or install) when a checkout, pull or rebase changes dependencies");

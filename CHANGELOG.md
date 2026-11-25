@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-11-25
+
+### Added
+- **`cleaninstall-node agent install`**: sets up AI coding agents to diagnose broken installs instead of deleting them. Adds a "diagnose before deleting" section to `AGENTS.md` and `CLAUDE.md` (creating a CLAUDE.md that imports AGENTS.md when there is none, since Claude Code ignores AGENTS.md once CLAUDE.md exists), plus Copilot instructions and a Cursor rule when those are already set up. Adds a Claude Code **PreToolUse hook** that blocks (or with `--ask`, asks about) Bash commands deleting `node_modules` or lockfiles (`rm -rf`, `rimraf`, `find -exec rm`/`-delete`/`xargs rm`, `git clean -x`, PowerShell/cmd, `bash -c`, `fs.rmSync`) and tells the agent to run `doctor --from-error` or the safe `cleaninstall-node -y --install`. `agent uninstall` removes only what it added; `agent check <command>` tests the guard. Settings are merged without losing existing permissions or hooks; an invalid settings.json is never overwritten.
+- **`llms.txt`** on the website, summarising the tool and its commands for AI assistants.
+
 ## [3.1.0] - 2026-11-25
 
 ### Added

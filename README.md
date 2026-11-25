@@ -19,7 +19,8 @@ npx cleaninstall-node --install      # clean + reinstall, safely
 **Using an AI coding agent?** Give it the [MCP server](#use-it-from-ai-agents-mcp) so it diagnoses broken installs instead of running `rm -rf node_modules package-lock.json`:
 
 ```bash
-claude mcp add cleaninstall -- npx -y cleaninstall-node mcp
+claude mcp add cleaninstall -- npx -y cleaninstall-node mcp   # tools for the agent
+npx cleaninstall-node agent install                            # guidance + a guard hook
 ```
 
 > **Upgrading from 2.x?** Lockfiles are now kept unless you pass `--lockfiles`, the CLI asks once before deleting (use `-y` in scripts), and Node.js 20+ is required. See the [changelog](https://github.com/ahusan/cleaninstall-node/blob/main/CHANGELOG.md#300---2026-11-25).
@@ -32,6 +33,7 @@ claude mcp add cleaninstall -- npx -y cleaninstall-node mcp
 - **Dry Run Mode:** See what would be deleted without actually removing anything.
 - **`doctor`:** Diagnoses *why* an install is broken (stale lockfile, wrong Node, native ABI mismatch, mixed package managers) and applies the smallest fix.
 - **`doctor --from-error`:** Paste or pipe an error; get what it means for *this* project and the fix.
+- **Agent setup:** `agent install` adds guidance to AGENTS.md / CLAUDE.md and a Claude Code hook that blocks `rm -rf node_modules` and lockfile deletion.
 - **MCP server for AI agents:** Claude Code, Cursor, VS Code and others can diagnose and fix installs through structured tools.
 - **Git hook:** Warns (or reinstalls) right after a pull, branch switch or rebase changes your dependencies.
 - **Safe by default:** Shows what will be removed and asks once before deleting (skip with `-y`). Lockfiles are kept unless you pass `--lockfiles`.
@@ -198,6 +200,34 @@ claude mcp add cleaninstall -- npx -y cleaninstall-node mcp
 ```
 
 Tools default to the folder the client starts the server in, which is normally your project. Every tool also takes a `dir` argument, and `mcp --dir <path>` changes the default; use one of these with clients that don't start in a project, such as Claude Desktop. On Windows, if a client can't find `npx`, use `"command": "cmd", "args": ["/c", "npx", "-y", "cleaninstall-node", "mcp"]`.
+
+### Agent setup: `agent install`
+
+An MCP tool only helps when the agent decides to use it. `agent install` changes the default:
+
+```bash
+npx cleaninstall-node agent install            # guidance + Claude Code guard hook
+npx cleaninstall-node agent install --ask      # hook asks you instead of blocking
+npx cleaninstall-node agent install --no-hook  # guidance only
+npx cleaninstall-node agent uninstall
+```
+
+| File | What it gets |
+| --- | --- |
+| `AGENTS.md` | A short "diagnose before deleting" section, read by most coding agents |
+| `CLAUDE.md` | The same section. If you don't have a CLAUDE.md, it creates one that imports `@AGENTS.md`, because Claude Code ignores AGENTS.md once a CLAUDE.md exists |
+| `.github/copilot-instructions.md`, `.cursor/rules/` | The same guidance, only if you already use Copilot instructions or Cursor rules |
+| `.claude/settings.json` + `.claude/hooks/cleaninstall-guard.js` | A Claude Code **PreToolUse hook** that blocks Bash commands deleting `node_modules` or a lockfile, and tells the agent what to run instead |
+
+The guard catches `rm -rf node_modules` (also `./`, `*/`, `**/` and `node_modules/*` forms), `rimraf`, `find … -exec rm` / `-delete` / `| xargs rm`, `git clean -x`, PowerShell `Remove-Item`, `rd /s`, `bash -c "…"`, `fs.rmSync(…)` one-liners, and any deletion of `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` or `bun.lock(b)`. It allows targeted cache clears such as `rm -rf node_modules/.vite`, and commands that only mention these names. The safe alternatives it suggests (`npx cleaninstall-node -y --install`, `--lockfiles` when the user asks) aren't blocked, so the agent always has a sanctioned way forward.
+
+Notes:
+- The guard script has no dependencies, so it works even when node_modules is missing or broken, and adds about 30 ms (one Node start-up) to each Bash call.
+- If anything goes wrong inside the guard, it allows the command rather than block the agent.
+- Turn it off for a session with `CLEANINSTALL_GUARD=off`. Try it on any command with `npx cleaninstall-node agent check <command>`.
+- Settings are merged: your permissions and other hooks are kept, and an invalid `settings.json` is left untouched. Everything installed is printed; commit it so your team gets it.
+- Claude Code runs project hooks without asking each person to approve them. So review the guard script before you commit it.
+- Tested in a real headless Claude Code session (Bash allowed): the hook stopped `rm -rf node_modules` and the agent relayed the reason. Behaviour in `bypassPermissions` mode is up to Claude Code and isn't verified here.
 
 ## Git hook: know when to reinstall
 
