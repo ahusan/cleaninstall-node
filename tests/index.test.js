@@ -140,6 +140,42 @@ describe("cleanup function", () => {
     });
   });
 
+  describe("when a deletion fails", () => {
+    const failWith = (code, message = `${code}: nope`) =>
+      jest.spyOn(fs, "rmSync").mockImplementation(() => {
+        throw Object.assign(new Error(message), { code });
+      });
+
+    test("exits 1, says what failed, and skips --install", async () => {
+      make(root, { "package-lock.json": "{}", node_modules: { a: "x" }, dist: { b: "y" } });
+      failWith("EACCES", "EACCES: permission denied, rmdir 'node_modules'");
+      const result = await cleanup({ dir: root, verbose: false, install: true });
+      expect(process.exitCode).toBe(1);
+      expect(result.failed.length).toBe(2);
+      expect(result.errors[0]).toEqual(expect.objectContaining({ code: "EACCES" }));
+      const errors = console.error.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(errors).toContain("couldn't be removed");
+      expect(errors).toContain("Permission denied");
+      expect(errors).toContain("Skipping install");
+      expect(require("../lib/run").run).not.toHaveBeenCalled();
+      const logs = console.log.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(logs).not.toContain("completed successfully");
+    });
+
+    test("Deno without write access gets the --allow-write hint", async () => {
+      make(root, { node_modules: { a: "x" } });
+      failWith("NotCapable", 'Requires write access to "node_modules", run again with the --allow-write flag');
+      await cleanup({ dir: root, verbose: false });
+      expect(console.error.mock.calls.map((c) => String(c[0])).join("\n")).toContain("--allow-write");
+    });
+
+    test("a clean run still exits 0", async () => {
+      make(root, { node_modules: { a: "x" } });
+      await cleanup({ dir: root, verbose: false });
+      expect(process.exitCode).toBeUndefined();
+    });
+  });
+
   test("should log error if deletion fails (e.g., rmSync throws)", async () => {
     make(root, { node_modules: { file: "a" } });
     const rmSyncSpy = jest.spyOn(fs, "rmSync").mockImplementation(() => {

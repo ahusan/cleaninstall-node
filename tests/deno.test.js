@@ -298,6 +298,26 @@ withDeno("with a real Deno", () => {
     expect(diagnose(root, { native: false }).findings.find((f) => f.id === "lockfile-sync").severity).toBe("ok");
   });
 
+  test("least privilege: doctor and MCP work with only --allow-read --allow-env", () => {
+    make(root, {
+      "package.json": json({ name: "app", dependencies: {} }),
+      "package-lock.json": "{}",
+      node_modules: { x: { "package.json": json({ name: "x" }), build: { Release: { "x.node": "not really" } } } },
+    });
+    const doctor = deno(["run", "--no-prompt", "--allow-read", "--allow-env", CLI, "doctor", "-d", root, "--json"], root);
+    const report = JSON.parse(doctor.stdout);
+    expect(report.findings.find((f) => f.id === "native-skipped").title).toContain("--allow-run");
+
+    const call = (args) =>
+      JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "diagnose", arguments: { native: false, ...args } } });
+    const mcp = (args) =>
+      deno(["run", "--no-prompt", "--allow-read", "--allow-env", CLI, "mcp", "--dir", root], root, { input: call(args) + "\n" });
+    const ok = JSON.parse(mcp({}).stdout.trim().split("\n")[0]);
+    expect(ok.result.isError).toBeUndefined();
+    const home = JSON.parse(mcp({ dir: os.homedir() }).stdout.trim().split("\n")[0]);
+    expect(home.result.content[0].text).toContain("home directory");
+  });
+
   test("the CLI runs under Deno itself", () => {
     make(root, { "package.json": json({ name: "app", dependencies: {} }), "package-lock.json": "{}" });
     const res = deno(["run", "-A", CLI, "doctor", "-d", root, "--json"], root);

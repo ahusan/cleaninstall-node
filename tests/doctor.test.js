@@ -265,6 +265,17 @@ describe("native modules", () => {
     expect(report.plan.steps).toEqual([expect.objectContaining({ label: "pnpm rebuild sqlite" })]);
   });
 
+  test("a skipped loader (missing runtime / Deno without --allow-run) is reported, not guessed", () => {
+    make(root, {
+      "package.json": json({}),
+      node_modules: { x: { "package.json": json({ name: "x" }), build: { Release: { "x.node": "x" } } } },
+    });
+    const run = (reason) =>
+      diagnose(root, { nodeVersion: "v22.11.0", loadAddon: () => ({ skipped: true, reason }) }).findings.find((f) => f.id === "native-skipped");
+    expect(run("Deno needs --allow-run to load them").details[0]).toContain("re-run with --allow-run");
+    expect(run("node isn't installed").details[0]).toContain("install Node.js");
+  });
+
   let hasGcc = false;
   try {
     execSync("gcc --version", { stdio: "ignore" });

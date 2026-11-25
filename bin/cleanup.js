@@ -315,6 +315,22 @@ function resolveInstallCommand(config, packageManager) {
   return { cmd: packageManager, args: INSTALL_COMMANDS[packageManager] };
 }
 
+// Why deletions failed, in one actionable line.
+function failureHint(errors) {
+  const codes = new Set(errors.map((e) => e.code));
+  const text = errors.map((e) => String(e.message || "")).join(" ");
+  if (codes.has("NotCapable") || /Requires write access|--allow-write/.test(text)) {
+    return "Deno needs write access: run with --allow-write (see the README's Deno section).";
+  }
+  if (codes.has("EBUSY") || codes.has("EPERM") && process.platform === "win32") {
+    return "A running program (dev server, editor, antivirus) may have these files open. Close it and try again.";
+  }
+  if (codes.has("EACCES") || codes.has("EPERM")) {
+    return "Permission denied: these files may be owned by another user (e.g. after `sudo npm install` or a Docker container).";
+  }
+  return "See the errors above for details.";
+}
+
 // Main function
 async function main(options, execa) {
   const rootDir = path.resolve(options.dir || process.cwd());
@@ -378,6 +394,7 @@ async function main(options, execa) {
     removed: [],
     skipped: [],
     failed: [],
+    errors: [],
     totalSize: 0,
     totalFiles: 0,
     itemsDeleted: 0,
@@ -479,6 +496,7 @@ async function main(options, execa) {
         } catch (error) {
           console.error(`Error processing ${t.path}:`, error);
           result.failed.push(t.path);
+          result.errors.push({ path: t.path, code: error && error.code, message: error && error.message });
           continue;
         }
       }
@@ -488,11 +506,19 @@ async function main(options, execa) {
     }
 
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.log(
-      `\n✅ Cleanup ${config.dryRun ? "(Dry Run) " : ""}${
-        config.interactive ? "(Interactive) " : ""
-      }completed successfully!`
-    );
+    if (result.failed.length > 0) {
+      // A partial cleanup is a failure: say so, and exit non-zero for scripts/CI.
+      process.exitCode = 1;
+      console.error(`\n❌ Cleanup finished, but ${result.failed.length} item(s) couldn't be removed:`);
+      for (const p of result.failed.slice(0, 10)) console.error(`   - ${path.relative(rootDir, p) || p}`);
+      console.error(`   ${failureHint(result.errors)}`);
+    } else {
+      console.log(
+        `\n✅ Cleanup ${config.dryRun ? "(Dry Run) " : ""}${
+          config.interactive ? "(Interactive) " : ""
+        }completed successfully!`
+      );
+    }
 
     if (result.itemsDeleted > 0) {
       console.log("\n📊 Summary:");
@@ -514,7 +540,9 @@ async function main(options, execa) {
   }
 
   // --- Auto-Install ---
-  if (!config.dryRun && config.install) {
+  if (!config.dryRun && config.install && result.failed.length > 0) {
+    console.error("\n⏭️  Skipping install because the cleanup didn't finish. Fix the items above, then run it again.");
+  } else if (!config.dryRun && config.install) {
     const { cmd, args } = resolveInstallCommand(config, packageManager);
     console.log(`\n📦 Running ${[cmd, ...args].join(" ")}...`);
     try {

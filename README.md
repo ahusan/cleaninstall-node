@@ -261,12 +261,30 @@ To give every teammate the hook without husky, add it to `prepare` (this needs `
 
 ## Deno
 
-**Run it with Deno:**
+**Run it with Deno.** Grant only what each command needs rather than `-A`:
 
 ```bash
-deno run -A npm:cleaninstall-node doctor
-deno install -g -A --name cleaninstall-node npm:cleaninstall-node   # global
+# Read-only diagnosis (native modules are skipped without --allow-run)
+deno run --allow-read --allow-env npm:cleaninstall-node doctor
+
+# Everything: --fix, cleanup, --install, the MCP server, the git hook
+deno run --allow-read --allow-env --allow-write --allow-run=node,deno,npm,pnpm,yarn,bun,git npm:cleaninstall-node doctor --fix
+
+# Global install with the same permissions
+deno install -g --allow-read --allow-env --allow-write --allow-run=node,deno,npm,pnpm,yarn,bun,git --name cleaninstall-node npm:cleaninstall-node
 ```
+
+| Command | Permissions |
+| --- | --- |
+| `doctor`, `doctor --from-error`, cleanup `--dry-run` | `--allow-read --allow-env` |
+| `doctor` checking native modules | add `--allow-run` (it loads each addon with `node` or `deno`) |
+| `doctor --fix` | `--allow-read --allow-env --allow-write --allow-run` |
+| cleanup | `--allow-read --allow-env --allow-write` (add `--allow-run` for `--install`) |
+| `mcp` | `--allow-read --allow-env` for diagnosis tools; add `--allow-write --allow-run` for `apply_fix` / `clean` |
+| `agent install` | `--allow-read --allow-env --allow-write` |
+| `hook install` / the hooks themselves | `--allow-read --allow-env --allow-write --allow-run=git` (add your package manager for `--mode install`) |
+
+`--allow-run` can name exactly the programs: `--allow-run=node,deno,npm,pnpm,yarn,bun,git`. The programs it starts (e.g. `npm install`) run outside Deno's sandbox, which is how Deno treats any subprocess. If a permission is missing, the tool says so: a skipped native-module check is reported as skipped, and a cleanup that can't delete exits with code 1 and tells you to add `--allow-write`.
 
 Deno 2.9+ won't install npm versions published in the last 24 hours. If you need a release from today, add `--minimum-dependency-age=0`.
 
