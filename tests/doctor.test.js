@@ -150,7 +150,7 @@ describe("install state", () => {
     make(root, {
       "package.json": json({}),
       "yarn.lock": "# yarn lockfile v1\n",
-      node_modules: { ".yarn-integrity": json({ systemParams: "linux-x64-115", lockfileEntries: {} }) },
+      node_modules: { ".yarn-integrity": json({ systemParams: "plan9-mips-1", lockfileEntries: {} }) },
     });
     expect(ids(diagnose(root, opts), "warn")).toContain("yarn-system");
   });

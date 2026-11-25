@@ -1,69 +1,70 @@
+// End-to-end: run the real CLI in a child process against temp directories.
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
-const { execSync } = require("child_process");
-const mockFs = require("mock-fs");
+const { spawnSync } = require("child_process");
 
-// Mock console methods to prevent test output noise
-const originalConsoleLog = console.log;
-const originalConsoleWarn = console.warn;
-const originalConsoleError = console.error;
+const CLI = path.resolve(__dirname, "../bin/cleanup.js");
+const pkg = require("../package.json");
 
-beforeEach(() => {
-  console.log = jest.fn();
-  console.warn = jest.fn();
-  console.error = jest.fn();
-});
-
-afterEach(() => {
-  console.log = originalConsoleLog;
-  console.warn = originalConsoleWarn;
-  console.error = originalConsoleError;
-  mockFs.restore();
-});
-
-// Helper function to run the CLI
-function runCLI(args = "") {
-  const cliPath = path.resolve(__dirname, "../bin/cleanup.js");
-  try {
-    return execSync(`node ${cliPath} ${args}`, {
-      encoding: "utf8",
-      stdio: "pipe",
-    });
-  } catch (error) {
-    return error.stdout;
-  }
+function run(args, opts = {}) {
+  const res = spawnSync(process.execPath, [CLI, ...args], {
+    encoding: "utf8",
+    input: "", // stdin is not a TTY, so no confirmation prompt
+    env: { ...process.env, CI: "true" },
+    ...opts,
+  });
+  return { code: res.status, out: res.stdout + res.stderr };
 }
 
+let root;
+beforeEach(() => {
+  root = fs.mkdtempSync(path.join(os.tmpdir(), "cin-cli-"));
+});
+afterEach(() => fs.rmSync(root, { recursive: true, force: true }));
+
 describe("CLI", () => {
-  // Commenting out/removing failing tests due to issues with runCLI/execSync
-  /*
-  test("should display help information with --help flag", () => {
-    const output = runCLI("--help");
-    expect(output).toContain("Usage:");
-    expect(output).toContain("Options:");
-    // Check some existing options
-    expect(output).toContain("--version");
-    expect(output).toContain("-d, --dir <directory>");
-    expect(output).toContain("-v, --verbose");
-    expect(output).toContain("--depth <number>");
-    // Check new options
-    expect(output).toContain("--dry-run");
-    expect(output).toContain("-i, --interactive");
-    expect(output).toContain("--install");
-    expect(output).toContain("-h, --help");
+  test("--version prints the package version", () => {
+    const { code, out } = run(["--version"]);
+    expect(code).toBe(0);
+    expect(out.trim()).toBe(pkg.version);
   });
 
-  test("should display version with --version flag", () => {
-    const output = runCLI("--version");
-    const packageJson = require("../package.json");
-    expect(output.trim()).toBe(packageJson.version);
+  test("--help lists the options and subcommands", () => {
+    const { out } = run(["--help"]);
+    for (const s of ["--dry-run", "-i, --interactive", "-y, --yes", "--lockfiles", "--install", "doctor", "hook"]) {
+      expect(out).toContain(s);
+    }
   });
-  */
 
-  // Note: We can't fully test the CLI's file system operations with mock-fs
-  // because execSync creates a new process that doesn't see the mocked file system.
-  // For more comprehensive CLI testing, we would need integration tests.
+  test("cleans a project without prompting when stdin is not a TTY", () => {
+    fs.writeFileSync(path.join(root, "package.json"), "{}");
+    fs.writeFileSync(path.join(root, "package-lock.json"), "{}");
+    fs.mkdirSync(path.join(root, "node_modules", "a"), { recursive: true });
+    fs.writeFileSync(path.join(root, "build"), "#!/bin/sh\n");
 
-  // Add a placeholder test to prevent Jest from complaining about an empty suite
-  test.skip("CLI tests skipped due to execution environment issues", () => {});
+    const { code } = run(["-d", root, "--no-verbose"]);
+    expect(code).toBe(0);
+    expect(fs.existsSync(path.join(root, "node_modules"))).toBe(false);
+    expect(fs.existsSync(path.join(root, "package-lock.json"))).toBe(true);
+    expect(fs.existsSync(path.join(root, "build"))).toBe(true);
+  });
+
+  test("--dry-run deletes nothing", () => {
+    fs.writeFileSync(path.join(root, "package.json"), "{}");
+    fs.mkdirSync(path.join(root, "dist"));
+    const { code, out } = run(["-d", root, "--dry-run", "--no-verbose"]);
+    expect(code).toBe(0);
+    expect(out).toContain("Would remove");
+    expect(fs.existsSync(path.join(root, "dist"))).toBe(true);
+  });
+
+  test("doctor --json reports and exits 1 on errors", () => {
+    fs.writeFileSync(path.join(root, "package.json"), JSON.stringify({ dependencies: { ms: "^2" } }));
+    const { code, out } = run(["doctor", "-d", root, "--json", "--no-native"]);
+    expect(code).toBe(1);
+    const report = JSON.parse(out);
+    expect(report.findings.map((f) => f.id)).toContain("not-installed");
+    expect(report.plan.steps[0].label).toBe("npm install");
+  });
 });
