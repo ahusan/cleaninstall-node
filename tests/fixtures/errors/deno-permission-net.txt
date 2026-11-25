@@ -1,0 +1,9 @@
+error: Uncaught (in promise) NotCapable: Requires net access to "example.com:443", run again with the --allow-net flag
+await fetch("https://example.com");
+      ^
+    at mainFetch (ext:deno_fetch/26_fetch.js:2:2193)
+    at ext:deno_fetch/26_fetch.js:2:6939
+    at new Promise (<anonymous>)
+    at Object.fetch (ext:deno_fetch/26_fetch.js:2:6346)
+    at fetch (ext:runtime/98_global_scope_shared.js:1:7740)
+    at file:///home/dev/app/net.ts:1:7

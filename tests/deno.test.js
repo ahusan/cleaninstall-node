@@ -164,7 +164,7 @@ describe("deno.json-only projects", () => {
     make(root, { "deno.json": json({ imports: { ms: "npm:ms@^2.1.0" }, nodeModulesDir: "auto" }) });
     const report = diagnose(root, opts);
     expect(ids(report, "error")).toEqual(["not-installed"]);
-    expect(ids(report, "warn")).toEqual(["no-lockfile"]);
+    expect(ids(report, "warn")).toContain("no-lockfile"); // (+ deno-missing on machines without Deno)
     expect(report.plan.steps[0].label).toBe("deno install");
   });
 
@@ -177,6 +177,55 @@ describe("deno.json-only projects", () => {
     linkTop("ms", "2.1.3");
     const f = diagnose(root, opts).findings.find((x) => x.id === "dep-versions");
     expect(f.details).toEqual(["ms: installed 2.1.3, deno.json wants ^3.0.0"]);
+  });
+});
+
+describe("Deno-native checks", () => {
+  const opts = { native: false, nodeVersion: "v22.11.0" };
+
+  test("deno.lock missing imports from deno.json (incl. workspace members) -> warning + deno install", () => {
+    make(root, {
+      "deno.json": json({ imports: { ms: "npm:ms@^2.1.0", "@std/path": "jsr:@std/path@^1.0.0" }, workspace: ["./packages/a"] }),
+      "deno.lock": denoLock({}, { workspace: { dependencies: ["jsr:@std/path@1", "npm:ms@^2.1.0"] } }),
+      packages: { a: { "deno.json": json({ imports: { "@std/fmt": "jsr:@std/fmt@^1" } }) } },
+    });
+    const report = diagnose(root, opts);
+    const f = report.findings.find((x) => x.id === "deno-lock-outdated");
+    expect(f.details[0]).toBe("jsr:@std/fmt");
+    expect(report.plan.steps.map((s) => s.label)).toEqual(["deno install"]);
+    expect(report.plan.manual).toContain("commit the updated deno.lock");
+  });
+
+  test("...and nothing to say when the lock covers everything (ranges are normalised by Deno)", () => {
+    make(root, {
+      "deno.json": json({ imports: { "@std/path": "jsr:@std/path@^1.0.0" } }),
+      "deno.lock": denoLock({}, { workspace: { dependencies: ["jsr:@std/path@1"] } }),
+    });
+    const report = diagnose(root, opts);
+    expect(ids(report)).not.toContain("deno-lock-outdated");
+    expect(report.findings.find((x) => x.id === "deno-lock-config").title).toContain("covers all 1");
+  });
+
+  test("invalid member deno.json is an error; missing members a warning", () => {
+    make(root, {
+      "deno.json": json({ workspace: ["./packages/a", "./packages/gone"] }),
+      packages: { a: { "deno.json": "{ oops" } },
+    });
+    const report = diagnose(root, opts);
+    expect(report.findings.find((x) => x.id === "deno-config-invalid").title).toBe(`${path.join("packages", "a", "deno.json")} isn't valid JSON`);
+    expect(report.findings.find((x) => x.id === "deno-workspace-missing").details[0]).toBe("./packages/gone");
+  });
+
+  test("glob workspace members and their npm imports are checked", () => {
+    make(root, {
+      "deno.json": json({ workspace: ["./packages/*"], nodeModulesDir: "auto" }),
+      "deno.lock": denoLock({ "ms@2.1.3": { integrity: "x" } }),
+      packages: { a: { "deno.json": json({ imports: { ms: "npm:ms@^3.0.0" } }) } },
+      node_modules: { ".deno": denoPkg("ms", "2.1.3") },
+    });
+    linkTop("ms", "2.1.3");
+    const f = diagnose(root, opts).findings.find((x) => x.id === "dep-versions");
+    expect(f.details).toEqual([`${path.join("packages", "a")}: ms: installed 2.1.3, deno.json wants ^3.0.0`]);
   });
 });
 
@@ -316,6 +365,28 @@ withDeno("with a real Deno", () => {
     expect(ok.result.isError).toBeUndefined();
     const home = JSON.parse(mcp({ dir: os.homedir() }).stdout.trim().split("\n")[0]);
     expect(home.result.content[0].text).toContain("home directory");
+  });
+
+  test("deno.json import added without updating deno.lock -> warned; --fix makes a frozen run pass", () => {
+    make(root, {
+      "deno.json": json({ imports: { ms: "npm:ms@2.1.3" } }),
+      "main.ts": 'import ms from "ms";\nconsole.log(ms("1s"));\n',
+    });
+    expect(deno(["install"], root).status).toBe(0);
+    expect(ids(diagnose(root, { native: false }))).not.toContain("deno-lock-outdated");
+
+    // A teammate adds a JSR import but doesn't commit the lockfile.
+    fs.writeFileSync(path.join(root, "deno.json"), json({ imports: { ms: "npm:ms@2.1.3", "@std/path": "jsr:@std/path@1.0.8" } }));
+    expect(diagnose(root, { native: false }).findings.find((f) => f.id === "deno-lock-outdated").details[0]).toBe("jsr:@std/path");
+    expect(deno(["install", "--frozen"], root).status).not.toBe(0); // what CI would hit
+
+    const fix = spawnSync(process.execPath, [CLI, "doctor", "-d", root, "--no-native", "--fix"], {
+      encoding: "utf8",
+      env: { ...process.env, PATH: `${path.dirname(DENO)}${path.delimiter}${process.env.PATH}` },
+    });
+    expect(fix.status).toBe(0);
+    expect(ids(diagnose(root, { native: false }))).not.toContain("deno-lock-outdated");
+    expect(deno(["install", "--frozen"], root).status).toBe(0);
   });
 
   test("the CLI runs under Deno itself", () => {

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-11-25
+
+### Added
+- **Deno-native projects** (JSR imports, Deno's global cache, deno.json workspaces):
+  - doctor checks that `deno.lock` covers every `jsr:`/`npm:` import in deno.json and its workspace members. A stale lock is a warning, since Deno updates it on the next run but `deno install --frozen` (CI) fails until it's committed; `--fix` runs `deno install`. JSR ranges are compared by package name, because Deno shortens them in the lock (`^1.0.0` → `1`).
+  - Invalid `deno.json`/`deno.jsonc` files (root or member) are reported with the parse error.
+  - Missing `"workspace"` members (Deno skips them with only a warning) are flagged; glob members are supported; member imports feed the dependency checks.
+  - doctor warns when a project uses Deno but `deno` isn't installed.
+- **`--from-error` recognises Deno's own errors**, each captured from real Deno 2.9:
+  - `Import "x" not a dependency` (with Deno's `deno add` suggestion)
+  - JSR and npm version not found, and JSR package not found
+  - npm tarball and JSR checksum mismatches (re-download with `--reload`, then fix the lockfile)
+  - `Unsupported lockfile version` (`deno upgrade`)
+  - invalid `deno.json`, and missing workspace members
+  - runtime permission errors, suggesting the narrowest flag (e.g. `--allow-read=deno.json`)
+
+  The MCP server's `explain_error` tool gets these too.
+
 ## [3.3.1] - 2026-11-25
 
 ### Fixed

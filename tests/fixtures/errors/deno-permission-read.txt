@@ -1,0 +1,5 @@
+error: Uncaught (in promise) NotCapable: Requires read access to "deno.json", run again with the --allow-read flag
+console.log(Deno.readTextFileSync("deno.json"));
+                 ^
+    at Object.readTextFileSync (ext:deno_fs/30_fs.js:1:9859)
+    at file:///home/dev/app/perm.ts:1:18

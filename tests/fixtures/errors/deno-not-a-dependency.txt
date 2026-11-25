@@ -1,0 +1,6 @@
+error: Import "lodash" not a dependency
+  hint: If you want to use the npm package, try running `deno add npm:lodash`
+    at file:///home/dev/app/bare.ts:1:15
+
+Stack backtrace:
+   0: <unknown>

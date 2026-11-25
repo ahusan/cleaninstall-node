@@ -295,6 +295,18 @@ Deno 2.9+ won't install npm versions published in the last 24 hours. If you need
 - **Install scripts:** says which packages Deno didn't run install scripts for, with the exact `deno install --allow-scripts=npm:…` command.
 - **Native modules:** loaded with Deno, so you get Deno's verdict. Addons built with the legacy (non-Node-API) API are reported as unsupported by Deno, which a rebuild won't fix. A native module built for another OS or CPU is rebuilt the Deno way: only that package's folder in `node_modules/.deno` is removed, then `deno install --allow-scripts=…` runs.
 - **Global cache:** `deno.json`-only projects without `nodeModulesDir` keep npm packages in Deno's global cache, and doctor says there's nothing to check instead of reporting "not installed".
+- **Deno-native projects (JSR, workspaces):**
+  - **`deno.lock` vs `deno.json`:** checks that `deno.lock` covers every `jsr:` and `npm:` import, including workspace members. Deno updates the lock on the next run, but `deno install --frozen` (CI) fails until it's committed, so a stale lock is a warning with `deno install` as the fix.
+  - **`deno.json` files:** an invalid one (root or workspace member) is reported with the parse error.
+  - **Workspaces:** missing `"workspace"` members (which Deno silently skips) are flagged, and glob members (`./packages/*`) are supported.
+  - **Deno itself:** if the project uses Deno but it isn't installed, doctor says so.
+- **`--from-error` for Deno's own errors:**
+  - `Import "x" not a dependency`: suggests the `deno add` command.
+  - JSR or npm version not found, and JSR package not found.
+  - Checksum mismatches against `deno.lock`: re-download with `--reload` first, then fix the lockfile.
+  - `Unsupported lockfile version`: suggests `deno upgrade`.
+  - Invalid `deno.json` and missing workspace members.
+  - Runtime permission errors (`Requires read access … --allow-read`): suggests the narrowest grant, e.g. `--allow-read=deno.json`.
 - **Cleanup:** `--lockfiles` also removes `deno.lock`; `--install` runs `deno install`.
 - **`--from-error`:** recognises Deno's frozen-lockfile error, its legacy-addon error and its minimum-dependency-age error.
 - **Git hook:** reacts to changes in `deno.lock` and `deno.json`.

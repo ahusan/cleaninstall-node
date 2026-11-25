@@ -1,0 +1,6 @@
+Download https://jsr.io/@definitely-not-a-scope-xyz/nope/meta.json
+error: JSR package not found: @definitely-not-a-scope-xyz/nope
+    at file:///home/dev/app/jsrnf.ts:1:19
+
+Stack backtrace:
+   0: <unknown>

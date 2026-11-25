@@ -1,0 +1,6 @@
+Download https://registry.npmjs.org/ms
+error: Could not find npm package 'ms' matching '^99.0.0'.
+    at file:///home/dev/app/npmv.ts:1:16
+
+Stack backtrace:
+   0: <unknown>

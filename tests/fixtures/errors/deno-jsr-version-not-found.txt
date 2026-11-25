@@ -1,0 +1,6 @@
+Download https://jsr.io/@std/path/meta.json
+error: Could not find version of '@std/path' that matches specified version constraint '^99.0.0'
+    at file:///home/dev/app/jsrv.ts:1:22
+
+Stack backtrace:
+   0: <unknown>
