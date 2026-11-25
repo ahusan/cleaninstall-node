@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-11-25
+
+### Breaking
+- **Lockfiles are no longer removed by default.** Use `--lockfiles` (CLI) or `removeLockfiles: true` (config/API) to remove them.
+- **The CLI asks for confirmation** before deleting when run in a terminal. Use `-y`/`--yes` to skip. Non-TTY runs (CI, pipes) and the programmatic API don't prompt.
+- Requires Node.js 20+ (already required in practice by `glob` 11).
+
+### Fixed
+- Files matching a directory pattern (e.g. a script named `build`) were deleted, and directories matching a file pattern were attempted with `unlink`. Matches are now type-checked.
+- `installCommand` from config was ignored.
+- `--skip-git` could not be turned off; added `--no-skip-git`.
+- Workspace exclusion patterns (`!packages/foo`) were ignored.
+- Items inside an already-targeted directory were counted twice.
+- Symlinks are no longer followed when measuring size (pnpm over-counting).
+- Removed stray `DEBUG:` console output.
+
+### Added
+- **`cleaninstall-node doctor`**: diagnoses why an install is broken (Node version vs `.nvmrc`/`engines`, node_modules out of sync with the lockfile for npm/pnpm/yarn, missing or out-of-range dependencies, native modules built for another Node ABI or platform, node_modules written by a different package manager, multiple lockfiles, pnpm ignored builds) and with `--fix` applies the smallest fix: targeted `rebuild`, `install`, or a clean reinstall. `--json` for CI; exits 1 on errors.
+- **`cleaninstall-node hook install`**: `post-checkout`, `post-merge` and `post-rewrite` hooks that notice when a branch switch, pull or rebase changed dependency files and `node_modules` is now stale, then warn with the exact command (default) or run the install/targeted rebuild (`--mode install`). Silent and fast when nothing relevant changed; uses `.husky/` when husky is set up; keeps existing hook content; skipped in CI.
+- Bun support: `bun.lock` / `bun.lockb` detection and `bun install`.
+- `packageManager` field (Corepack) is used for package manager detection.
+- `cleanup()` now resolves to a result object (`removed`, `skipped`, `failed`, `totalSize`, ...).
+- Real-filesystem behaviour tests replacing assertion-less placeholders.
+
 ## [2.2.2] - 2025-12-16
 
 ### Fixed
